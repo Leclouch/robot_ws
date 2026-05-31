@@ -1,153 +1,61 @@
-"""
-Central configuration for the autonomous KRAI robot.
+# ==========================================
+# FILE: config.py
+# ==========================================
 
-This file is intentionally data-only: tune values here, keep robot logic in
-FSM and hardware modules.
-"""
+class SerialConfig:
+    # --- Konfigurasi Komunikasi ---
+    PORT = '/dev/ttyACM0'  # Ganti ke 'COM3' atau menyesuaikan jika pakai Windows
+    BAUDRATE = 115200
+    TIMEOUT = 0.1          
 
-from __future__ import annotations
+class HardwareConfig:
+    # --- Konfigurasi Channel Motor Driver (Via PCA9685 0x40) ---
+    # Jika ada driver atau pin yang terbakar, cukup ubah angkanya di sini.
+    M1A = 12  # Depan Kiri
+    M1B = 13
+    M2A = 7   # Depan Kanan
+    M2B = 6
+    M3A = 14  # Belakang Kanan
+    M3B = 11
+    M4A = 5   # Belakang Kiri
+    M4B = 8
 
-from dataclasses import dataclass
+class KinematicConfig:
+    # --- Tuning Kecepatan Trapesium ---
+    SPEED_MAX_FWD = 85.0   # Batas kecepatan Maju/Mundur
+    SPEED_MAX_STRF = 85.0  # Batas kecepatan Kanan/Kiri (Strafe)
+    SPEED_MAX_TURN = 50.0  # Batas kecepatan Rotasi
+    
+    # --- Toleransi Navigasi (Untuk fungsi wait_until_idle) ---
+    DIST_TOLERANCE = 0.02  # Jarak aman sasis dianggap sudah sampai target (meter)
+    ANGLE_TOLERANCE = 2.0  # Toleransi kemiringan sudut hadap (derajat)
+    IDLE_TIMEOUT = 15.0    # Batas waktu maksimal tunggu target sebelum dianggap nyangkut (detik)
+    SETTLE_TIME = 0.4      # Waktu jeda agar sasis stabil/tidak goyang setelah rem mekanik (detik)
 
+class ActuatorConfig:
+    # --- Konfigurasi Channel Servo (Via PCA9685 0x60) ---
+    PIN_GRIP = 0
+    PIN_ARM_SPEAR = 1
+    
+    # --- Konfigurasi Sudut Gerak Servo ---
+    GRIP_OPEN = 120
+    GRIP_CLOSE = 30
+    ARM_UP = 48         
+    ARM_DOWN = 135      
+    
+    # --- Waktu Mekanik (Jeda Gerak Aman) ---
+    # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna
+    DELAY_ARM_SEC = 0.6    # Estimasi lengan turun/naik sempurna
+    DELAY_GRIP_SEC = 0.5   # Estimasi capit mengunci kuat
+    DELAY_PNEU_SEC = 0.4   # Waktu aktuasi tabung pneumatik memompa/membuang udara
 
-# ---------------------------------------------------------------------------
-# Serial / Teensy link
-# ---------------------------------------------------------------------------
-
-SERIAL_BAUDRATE = 115_200
-SERIAL_TIMEOUT_S = 0.05
-SERIAL_RECONNECT_INTERVAL_S = 1.0
-
-# Jetson/Linux autodetect candidates. The serial layer should scan these
-# prefixes and prefer ports whose USB description matches TEENSY_USB_HINTS.
-SERIAL_PORT_PREFIXES = (
-    "/dev/ttyACM",
-    "/dev/ttyUSB",
-    "/dev/serial/by-id/",
-)
-
-TEENSY_USB_HINTS = (
-    "Teensy",
-    "PJRC",
-    "USB Serial",
-)
-
-
-# ---------------------------------------------------------------------------
-# Motion tuning
-# ---------------------------------------------------------------------------
-
-ODOMETRY_REPORT_PERIOD_S = 0.1
-CONTROL_LOOP_PERIOD_S = 0.02
-
-# All distances are meters, angles are degrees.
-POSITION_TOLERANCE_M = 0.02
-STRAFE_TOLERANCE_M = 0.02
-HEADING_TOLERANCE_DEG = 1.5
-
-MOVE_IDLE_CONFIRM_COUNT = 3
-MOVE_TIMEOUT_MARGIN_S = 1.5
-MOVE_MIN_TIMEOUT_S = 2.0
-
-
-@dataclass(frozen=True)
-class SpeedLimit:
-    max_fwd: float
-    max_strf: float
-    max_turn: float
-
-
-DEFAULT_SPEED_LIMIT = SpeedLimit(
-    max_fwd=0.65,
-    max_strf=0.55,
-    max_turn=120.0,
-)
-
-SLOW_SPEED_LIMIT = SpeedLimit(
-    max_fwd=0.25,
-    max_strf=0.20,
-    max_turn=45.0,
-)
-
-
-# ---------------------------------------------------------------------------
-# Servo geometry
-# ---------------------------------------------------------------------------
-
-SERVO_GRIPPER_PIN = 0
-SERVO_ARM_PIN = 1
-
-GRIPPER_OPEN_DEG = 75
-GRIPPER_CLOSED_DEG = 12
-
-ARM_UP_DEG = 35
-ARM_PICKUP_DEG = 118
-ARM_SCORE_DEG = 95
-
-SERVO_SETTLE_S = 0.35
-
-
-# ---------------------------------------------------------------------------
-# Pneumatic actuator states
-# ---------------------------------------------------------------------------
-
-PNEUMATIC_RETRACT = 0
-PNEUMATIC_EXTEND = 1
-
-PNEUMATIC_FRONT_DEFAULT = PNEUMATIC_RETRACT
-PNEUMATIC_BACK_DEFAULT = PNEUMATIC_RETRACT
-
-PNEUMATIC_FRONT_FIRE_S = 0.25
-PNEUMATIC_BACK_FIRE_S = 0.25
-PNEUMATIC_SEQUENCE_GAP_S = 0.15
-
-
-# ---------------------------------------------------------------------------
-# LED / buzzer feedback
-# ---------------------------------------------------------------------------
-
-LED_MODE_SOLID = 1
-LED_MODE_BLINK = 2
-LED_MODE_BREATH = 3
-
-LED_RED = (255, 0, 0)
-LED_GREEN = (0, 255, 0)
-LED_BLUE = (0, 60, 255)
-LED_YELLOW = (255, 180, 0)
-LED_PURPLE = (160, 0, 255)
-LED_OFF = (0, 0, 0)
-
-BUZZER_START_MS = 120
-BUZZER_DONE_MS = 500
-BUZZER_ERROR_MS = 1_000
-
-
-# ---------------------------------------------------------------------------
-# PCA9685 motor channel mapping
-# ---------------------------------------------------------------------------
-
-# Format follows command:
-# K <m1a> <m1b> <m2a> <m2b> <m3a> <m3b> <m4a> <m4b>
-#
-# Replace these with the real PCA9685 channels after wiring is finalized.
-MOTOR_PCA_CHANNELS = (
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-)
-
-
-# ---------------------------------------------------------------------------
-# Match flow defaults
-# ---------------------------------------------------------------------------
-
-WAIT_FOR_ENTER_START = True
-ZERO_ODOMETRY_ON_START = True
-ENABLE_DEADWHEEL_ON_START = True
-STOP_ON_EXIT = True
-
+class VisionConfig:
+    # --- Konfigurasi Sensor Kamera / OpenCV ---
+    CAMERA_INDEX = 0       # 0 untuk webcam bawaan / port USB pertama
+    FRAME_WIDTH = 640
+    FRAME_HEIGHT = 480
+    TARGET_FPS = 30
+    
+    # --- Toleransi Error Visual ---
+    PIXEL_TOLERANCE_X = 15 # Robot berhenti koreksi visual jika error pixel di bawah angka ini
+    PIXEL_TOLERANCE_Y = 15
