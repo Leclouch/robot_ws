@@ -67,7 +67,7 @@ Setelah target lock, FSM melanjutkan maju buta dan aktuasi arm/gripper.
 
 ## Debug Target Vision
 
-Untuk tuning titik crosshair spearhead tanpa menggerakkan robot:
+Untuk tuning garis target spearhead tanpa menggerakkan robot:
 
 ```bash
 source .venv/bin/activate
@@ -77,10 +77,11 @@ python scripts/debug_spearhead_target.py
 Kontrol keyboard:
 
 ```text
-a/d  geser target kiri/kanan
-w/s  geser target atas/bawah
+a/d  geser garis target kiri/kanan
 p    print ratio target saat ini
 q    keluar
 ```
 
-Salin nilai ratio yang sudah pas ke `VisionConfig` di `config.py`.
+Vision hanya mengejar supaya centroid objek sejajar dengan garis vertikal target.
+Jarak vertikal objek terhadap goal tidak dipakai sebagai syarat lock. Salin nilai
+`SPEARHEAD_TARGET_X_RATIO` yang sudah pas ke `VisionConfig` di `config.py`.

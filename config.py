@@ -67,8 +67,9 @@ class VisionConfig:
     SPEARHEAD_CONF_THRESHOLD = 0.2
     SPEARHEAD_IMGSZ = 960
 
-    # Titik target di frame kamera. X=0 kiri, X=1 kanan. Y=0 atas, Y=1 bawah.
+    # Garis target di frame kamera. Vision hanya menyamakan X objek dengan garis ini.
     SPEARHEAD_TARGET_X_RATIO = 0.52
+    # Y tetap disimpan untuk normalisasi tracking/debug, bukan syarat alignment.
     SPEARHEAD_TARGET_Y_RATIO = 0.85
 
     # Tracking multi-frame agar centroid tidak loncat-loncat.

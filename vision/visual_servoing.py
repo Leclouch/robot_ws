@@ -95,7 +95,7 @@ class SpearheadVisualServo:
                     time.sleep(0.05)
                     continue
 
-                processed, best_track, err_x_px, err_y_px = self.process_frame(frame)
+                processed, best_track, err_x_px, _ = self.process_frame(frame)
                 self._show_debug(processed)
 
                 if best_track is None:
@@ -103,7 +103,7 @@ class SpearheadVisualServo:
                     continue
 
                 if abs(err_x_px) <= self.config.PIXEL_TOLERANCE_X:
-                    print("[VISION] Spearhead terkunci secara horizontal.")
+                    print("[VISION] Spearhead sejajar dengan garis target vertikal.")
                     return True
 
                 if time.time() - self.last_cmd_time < self.config.SPEARHEAD_ACTION_DELAY_SEC:
@@ -282,12 +282,11 @@ class SpearheadVisualServo:
                 2,
             )
 
-        self.cv2.drawMarker(
+        self.cv2.line(
             color_image,
-            (int(target_x), int(target_y)),
+            (int(target_x), 0),
+            (int(target_x), height),
             (255, 0, 0),
-            self.cv2.MARKER_CROSS,
-            20,
             2,
         )
 
