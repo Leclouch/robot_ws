@@ -68,7 +68,7 @@ class VisionConfig:
     SPEARHEAD_IMGSZ = 960
 
     # Titik target di frame kamera. X=0 kiri, X=1 kanan. Y=0 atas, Y=1 bawah.
-    SPEARHEAD_TARGET_X_RATIO = 0.17
+    SPEARHEAD_TARGET_X_RATIO = 0.52
     SPEARHEAD_TARGET_Y_RATIO = 0.85
 
     # Tracking multi-frame agar centroid tidak loncat-loncat.
