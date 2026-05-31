@@ -71,6 +71,23 @@ Setelah target lock, FSM melanjutkan maju buta dan aktuasi arm/gripper.
 background thread. Dashboard menampilkan odometri, status arena, koneksi serial,
 dan tombol `EMERGENCY STOP` yang langsung mengirim command stop ke Teensy.
 
+## Test Teensy
+
+Untuk mengecek koneksi Jetson ke Teensy dan arah aktuator secara manual:
+
+```bash
+source .venv/bin/activate
+python scripts/test_teensy_connection.py
+```
+
+Default gerak kecil adalah `0.20 m` dan rotasi `20 deg`. Bisa diubah:
+
+```bash
+python scripts/test_teensy_connection.py --move 0.10 --turn 10
+```
+
+Script ini interaktif dan meminta konfirmasi sebelum setiap gerakan.
+
 ## Debug Target Vision
 
 Untuk tuning garis target spearhead tanpa menggerakkan robot:

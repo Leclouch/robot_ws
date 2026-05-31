@@ -1,122 +1,116 @@
-"""Tkinter dashboard for passive robot monitoring and emergency stop."""
-
+# ==========================================
+# ui/dashboard.py
+# ==========================================
 import tkinter as tk
-from tkinter import ttk
-
+from tkinter import messagebox
+import threading
 
 class RobotDashboard:
-    REFRESH_MS = 100
+    def __init__(self, window, fsm_instance):
+        self.window = window
+        self.fsm = fsm_instance
+        self.window.title("KRAI 2026 - MASTER CONTROL DASHBOARD")
+        self.window.geometry("800x480")
+        self.window.configure(bg="#222222")
 
-    def __init__(self, fsm):
-        self.fsm = fsm
-        self.robot = fsm.robot
+        # Memory lokal GUI untuk memantau tombol mana yang sedang memegang KFS tertentu
+        self.kfs_local_coords = {"R1": None, "R2": None, "Fake": None}
 
-        self.root = tk.Tk()
-        self.root.title("GMRT Robot Dashboard")
-        self.root.geometry("420x360")
-        self.root.resizable(False, False)
-        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        # ==========================================
+        # PANEL KIRI: TOMBOL KONTROL UTAMA
+        # ==========================================
+        left_panel = tk.Frame(window, bg="#2d2d2d", padx=15, pady=15)
+        left_panel.pack(side=tk.LEFT, fill=tk.Y)
 
-        self.odom_x_var = tk.StringVar(value="0.000 m")
-        self.odom_y_var = tk.StringVar(value="0.000 m")
-        self.theta_var = tk.StringVar(value="0.00 deg")
-        self.state_var = tk.StringVar(value="STANDBY")
-        self.serial_var = tk.StringVar(value="DISCONNECTED")
+        tk.Label(left_panel, text="COMMAND CONTROL", font=("Arial", 12, "bold"), bg="#2d2d2d", fg="white").pack(pady=10)
+        
+        # Action Buttons
+        tk.Button(left_panel, text="START GLOBAL AUTO", bg="#00aa00", fg="white", font=("Arial", 10, "bold"), width=22, height=2, command=self.gui_start).pack(pady=5)
+        tk.Button(left_panel, text="RETRY ARENA 1", bg="#33b5e5", fg="white", width=22, height=1, command=lambda: self.gui_retry(1)).pack(pady=3)
+        tk.Button(left_panel, text="RETRY ARENA 2", bg="#33b5e5", fg="white", width=22, height=1, command=lambda: self.gui_retry(2)).pack(pady=3)
+        tk.Button(left_panel, text="RETRY ARENA 3", bg="#33b5e5", fg="white", width=22, height=1, command=lambda: self.gui_retry(3)).pack(pady=3)
+        
+        # Safe Buttons
+        tk.Button(left_panel, text="EMERGENCY STOP (S)", bg="#ff4444", fg="white", font=("Arial", 11, "bold"), width=20, height=2, command=self.fsm.trigger_stop).pack(pady=20)
+        tk.Button(left_panel, text="RESET SYSTEM (Z)", bg="#aa66cc", fg="white", width=22, command=self.fsm.trigger_reset).pack(pady=3)
 
-        self._build_layout()
-        self._refresh()
+        # Monitor State Text
+        self.lbl_status = tk.Label(left_panel, text="STATE: STANDBY", font=("Arial", 12, "bold"), bg="#2d2d2d", fg="#ffbb33")
+        self.lbl_status.pack(side=tk.BOTTOM, pady=20)
 
-    def _build_layout(self):
-        self.root.configure(bg="#101418")
+        # ==========================================
+        # PANEL KANAN: MATRIKS KFS 3X4
+        # ==========================================
+        right_panel = tk.Frame(window, bg="#222222", padx=20, pady=15)
+        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Root.TFrame", background="#101418")
-        style.configure("Panel.TFrame", background="#182028", relief="flat")
-        style.configure("Title.TLabel", background="#101418", foreground="#f4f7fb", font=("Arial", 16, "bold"))
-        style.configure("Label.TLabel", background="#182028", foreground="#aab4c0", font=("Arial", 10))
-        style.configure("Value.TLabel", background="#182028", foreground="#f4f7fb", font=("Consolas", 18, "bold"))
-        style.configure("State.TLabel", background="#182028", foreground="#f4f7fb", font=("Arial", 13, "bold"))
-        style.configure("Stop.TButton", font=("Arial", 18, "bold"))
+        tk.Label(right_panel, text="KUNG FU SQUARE MATRIX (3x4)", font=("Arial", 13, "bold"), bg="#222222", fg="white").pack(pady=5)
 
-        root_frame = ttk.Frame(self.root, padding=16, style="Root.TFrame")
-        root_frame.pack(fill="both", expand=True)
+        # Radio Button Selektor Jenis KFS
+        self.selected_kfs_type = tk.StringVar(value="R1")
+        radio_frame = tk.Frame(right_panel, bg="#222222")
+        radio_frame.pack(pady=5)
+        
+        tk.Radiobutton(radio_frame, text="Set KFS R1", variable=self.selected_kfs_type, value="R1", font=("Arial", 10, "bold"), bg="#222222", fg="#4285F4", selectcolor="#222222").pack(side=tk.LEFT, padx=15)
+        tk.Radiobutton(radio_frame, text="Set KFS R2", variable=self.selected_kfs_type, value="R2", font=("Arial", 10, "bold"), bg="#222222", fg="#0F9D58", selectcolor="#222222").pack(side=tk.LEFT, padx=15)
+        tk.Radiobutton(radio_frame, text="Set KFS Fake", variable=self.selected_kfs_type, value="Fake", font=("Arial", 10, "bold"), bg="#222222", fg="#DB4437", selectcolor="#222222").pack(side=tk.LEFT, padx=15)
 
-        title = ttk.Label(root_frame, text="GMRT ROBOT DASHBOARD", style="Title.TLabel")
-        title.pack(anchor="w")
+        # Grid Pembentuk Matriks 3x4
+        grid_container = tk.Frame(right_panel, bg="#333333", padx=10, pady=10)
+        grid_container.pack(pady=10)
+        
+        self.grid_buttons = {}
+        for row in range(3):
+            for col in range(4):
+                btn_key = f"{row},{col}"
+                btn = tk.Button(
+                    grid_container, 
+                    text=f"Empty\n({row},{col})", 
+                    width=10, 
+                    height=3, 
+                    bg="#555555", 
+                    fg="white",
+                    font=("Arial", 9),
+                    command=lambda r=row, c=col: self.on_grid_click(r, c)
+                )
+                btn.grid(row=row, column=col, padx=4, pady=4)
+                self.grid_buttons[btn_key] = btn
 
-        telemetry = ttk.Frame(root_frame, padding=14, style="Panel.TFrame")
-        telemetry.pack(fill="x", pady=(14, 10))
+        # Jalankan loop sinkronisasi teks status FSM ke GUI secara periodik
+        self.refresh_status_loop()
 
-        self._add_metric(telemetry, 0, "X (Fwd)", self.odom_x_var)
-        self._add_metric(telemetry, 1, "Y (Strf)", self.odom_y_var)
-        self._add_metric(telemetry, 2, "Theta", self.theta_var)
+    def on_grid_click(self, row, col):
+        """Mengatur visual warna tombol saat diklik dan melempar koordinat ke Path Planner"""
+        kfs_type = self.selected_kfs_type.get()
 
-        status = ttk.Frame(root_frame, padding=14, style="Panel.TFrame")
-        status.pack(fill="x", pady=(0, 12))
+        # Bersihkan visual tombol lama yang sebelumnya memegang jenis KFS ini
+        if self.kfs_local_coords[kfs_type] is not None:
+            old_r, old_c = self.kfs_local_coords[kfs_type]
+            self.grid_buttons[f"{old_r},{old_c}"].config(text=f"Empty\n({old_r},{old_c})", bg="#555555", fg="white")
 
-        ttk.Label(status, text="FSM State", style="Label.TLabel").grid(row=0, column=0, sticky="w")
-        self.state_label = ttk.Label(status, textvariable=self.state_var, style="State.TLabel")
-        self.state_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        # Daftarkan koordinat baru
+        self.kfs_local_coords[kfs_type] = (row, col)
+        
+        # Berikan warna identitas unik pada tombol matriks
+        style_map = {"R1": ("#4285F4", "white"), "R2": ("#0F9D58", "white"), "Fake": ("#DB4437", "white")}
+        bg_color, fg_color = style_map[kfs_type]
+        self.grid_buttons[f"{row},{col}"].config(text=f"🎯 {kfs_type}\n({row},{col})", bg=bg_color, fg=fg_color)
 
-        ttk.Label(status, text="Serial", style="Label.TLabel").grid(row=0, column=1, sticky="w", padx=(32, 0))
-        self.serial_label = ttk.Label(status, textvariable=self.serial_var, style="State.TLabel")
-        self.serial_label.grid(row=1, column=1, sticky="w", padx=(32, 0), pady=(4, 0))
+        # KIRIM DATA LANGSUNG KE OBJECT PATH PLANNER DI DALAM FSM ROBOT
+        self.fsm.planner.set_kfs_grid(kfs_type, row, col)
 
-        stop_btn = tk.Button(
-            root_frame,
-            text="EMERGENCY STOP",
-            command=self._emergency_stop,
-            bg="#d71920",
-            fg="white",
-            activebackground="#a70f14",
-            activeforeground="white",
-            font=("Arial", 20, "bold"),
-            relief="flat",
-            height=2,
-        )
-        stop_btn.pack(fill="x", pady=(4, 0))
+    def gui_start(self):
+        # Proteksi pengaman: Lomba tidak boleh start jika koordinat sasaran penting belum ditentukan
+        if self.kfs_local_coords["R1"] is None or self.kfs_local_coords["R2"] is None:
+            messagebox.showwarning("KFS Kosong", "Tentukan posisi KFS R1 dan KFS R2 terlebih dahulu di matriks!")
+            return
+        # Panggil FSM menggunakan Thread baru agar GUI tidak lag/macet
+        threading.Thread(target=self.fsm.trigger_full_auto, daemon=True).start()
 
-    def _add_metric(self, parent, column, label_text, value_var):
-        cell = ttk.Frame(parent, style="Panel.TFrame")
-        cell.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 12, 0))
-        parent.columnconfigure(column, weight=1)
+    def gui_retry(self, arena_id):
+        threading.Thread(target=self.fsm.trigger_retry_arena, args=(arena_id,), daemon=True).start()
 
-        ttk.Label(cell, text=label_text, style="Label.TLabel").pack(anchor="w")
-        ttk.Label(cell, textvariable=value_var, style="Value.TLabel").pack(anchor="w", pady=(4, 0))
-
-    def _refresh(self):
-        self.odom_x_var.set(f"{self.robot.odom_x:.3f} m")
-        self.odom_y_var.set(f"{self.robot.odom_y:.3f} m")
-        self.theta_var.set(f"{self.robot.odom_theta_deg:.2f} deg")
-
-        if self.robot.is_connected:
-            self.state_var.set(self.fsm.current_arena)
-            self.serial_var.set("CONNECTED")
-            self.state_label.configure(foreground="#f4f7fb")
-            self.serial_label.configure(foreground="#20d67b")
-        else:
-            self.state_var.set("DISCONNECTED / KABEL LEPAS!")
-            self.serial_var.set("DISCONNECTED")
-            self.state_label.configure(foreground="#ff4d4d")
-            self.serial_label.configure(foreground="#ff4d4d")
-
-        self.root.after(self.REFRESH_MS, self._refresh)
-
-    def _emergency_stop(self):
-        print("[DASHBOARD] Emergency stop clicked.")
-        self.fsm.current_arena = "EMERGENCY_STOP"
-        self.robot.e_stop()
-
-    def _on_close(self):
-        self.root.destroy()
-
-    def run(self):
-        self.root.mainloop()
-
-
-def run_dashboard(fsm) -> None:
-    RobotDashboard(fsm).run()
-
-
-Dashboard = RobotDashboard
+    def refresh_status_loop(self):
+        """Loop berkala membaca status terkini dari FSM Robot"""
+        self.lbl_status.config(text=f"STATE: {self.fsm.current_arena}")
+        self.window.after(100, self.refresh_status_loop)

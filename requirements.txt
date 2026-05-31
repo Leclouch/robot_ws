@@ -1,5 +1,5 @@
 numpy>=1.23
-opencv-python>=4.8
+opencv-contrib-python>=4.8
 pyserial>=3.5
 torch
 ultralytics>=8.0

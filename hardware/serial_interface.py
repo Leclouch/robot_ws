@@ -2,11 +2,12 @@
 # FILE: hardware/serial_interface.py
 # ==========================================
 import serial
+import glob
 import time
 import math
 import threading
 import re
-from config import SerialConfig, HardwareConfig, KinematicConfig
+from config import SerialConfig, KinematicConfig
 
 class RobotController:
     def __init__(self):
@@ -60,20 +61,36 @@ class RobotController:
 
     def _attempt_connection(self):
         """Mencoba membuka port serial dan mengirim ulang konfigurasi hardware."""
-        print(f"[RECONNECT] Mencoba menghubungkan ke {SerialConfig.PORT}...")
+        port = self._resolve_serial_port()
+        if port is None:
+            print("[RECONNECT] Tidak ada port Teensy terdeteksi.")
+            return
+
+        print(f"[RECONNECT] Mencoba menghubungkan ke {port}...")
         try:
             self.ser = serial.Serial(
-                port=SerialConfig.PORT, 
+                port=port, 
                 baudrate=SerialConfig.BAUDRATE, 
                 timeout=SerialConfig.TIMEOUT
             )
-            print(f"[SUCCESS] Terhubung dengan {SerialConfig.PORT}! Tunggu bootloader Teensy...")
+            print(f"[SUCCESS] Terhubung dengan {port}! Tunggu bootloader Teensy...")
             time.sleep(2.0) # Wajib jeda 2 detik agar Teensy siap menerima command
             
             self.is_connected = True
-            self._send_hardware_config() # Tembak config setelah konek
+            print("[INFO] Teensy siap. K/X tidak dikirim karena firmware saat ini tidak mendukungnya.")
         except (serial.SerialException, OSError):
             pass # Gagal konek, akan dicoba lagi di iterasi loop selanjutnya
+
+    def _resolve_serial_port(self):
+        """Memilih port serial Teensy. Jika PORT diisi, gunakan itu; jika None, autodetect."""
+        if SerialConfig.PORT:
+            return SerialConfig.PORT
+
+        for pattern in SerialConfig.PORT_CANDIDATES:
+            matches = sorted(glob.glob(pattern))
+            if matches:
+                return matches[0]
+        return None
 
     def _handle_disconnect(self):
         """Menutup port dengan aman jika terdeteksi diskoneksi."""
@@ -84,17 +101,6 @@ class RobotController:
             except Exception: 
                 pass
             self.ser = None
-
-    def _send_hardware_config(self):
-        """Mengirim parameter Pin Motor dan Speed Limit dari config.py ke Teensy."""
-        # Command 'K': Susunan Pin Motor
-        pin_cmd = f"K {HardwareConfig.M1A} {HardwareConfig.M1B} {HardwareConfig.M2A} {HardwareConfig.M2B} {HardwareConfig.M3A} {HardwareConfig.M3B} {HardwareConfig.M4A} {HardwareConfig.M4B}"
-        self._write_raw(pin_cmd)
-        
-        # Command 'X': Batas Kecepatan Maksimum
-        speed_cmd = f"X {KinematicConfig.SPEED_MAX_FWD} {KinematicConfig.SPEED_MAX_STRF} {KinematicConfig.SPEED_MAX_TURN}"
-        self._write_raw(speed_cmd)
-        print("[INFO] Parameter Konfigurasi Hardware berhasil disinkronisasi ke Teensy.")
 
     def _write_raw(self, string_data):
         """Fungsi internal untuk menulis instruksi ke kabel serial."""
@@ -130,7 +136,8 @@ class RobotController:
         self.send_cmd(f"W {1 if state else 0}")
         
     def set_led(self, mode, r=0, g=0, b=0): 
-        self.send_cmd(f"L {mode} {r} {g} {b}")
+        # Teensy firmware currently only renders custom LED mode 1 (solid).
+        self.send_cmd(f"L 1 {r} {g} {b}")
         
     def trigger_buzzer(self, duration): 
         self.send_cmd(f"B {duration}")

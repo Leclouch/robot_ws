@@ -4,7 +4,12 @@
 
 class SerialConfig:
     # --- Konfigurasi Komunikasi ---
-    PORT = '/dev/ttyACM0'  # Ganti ke 'COM3' atau menyesuaikan jika pakai Windows
+    PORT = None  # None = autodetect Jetson/Linux serial port
+    PORT_CANDIDATES = (
+        "/dev/serial/by-id/*",
+        "/dev/ttyACM*",
+        "/dev/ttyUSB*",
+    )
     BAUDRATE = 115200
     TIMEOUT = 0.1          
 
@@ -38,10 +43,10 @@ class ActuatorConfig:
     PIN_ARM_SPEAR = 1
     
     # --- Konfigurasi Sudut Gerak Servo ---
-    GRIP_OPEN = 120
-    GRIP_CLOSE = 30
-    ARM_UP = 48         
-    ARM_DOWN = 135      
+    GRIP_OPEN = 155
+    GRIP_CLOSE = 65
+    ARM_UP = 0         
+    ARM_DOWN = 95      
     
     # --- Waktu Mekanik (Jeda Gerak Aman) ---
     # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna

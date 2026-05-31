@@ -129,6 +129,51 @@ class SpearheadVisualServo:
         finally:
             self.close()
 
+    def detect_apriltag(self):
+        """
+        Detect an AprilTag marker from the configured camera.
+
+        Returns:
+            tuple(bool, int | None): (detected, tag_id)
+
+        This uses OpenCV ArUco's AprilTag dictionary when available. If the
+        installed OpenCV build has no aruco module, it safely reports no tag.
+        """
+        if self.cap is None:
+            self._open_camera()
+
+        ret, frame = self.cap.read()
+        if not ret:
+            return False, None
+
+        aruco = getattr(self.cv2, "aruco", None)
+        if aruco is None:
+            return False, None
+
+        dictionary_id = getattr(aruco, "DICT_APRILTAG_36h11", None)
+        if dictionary_id is None:
+            return False, None
+
+        gray = self.cv2.cvtColor(frame, self.cv2.COLOR_BGR2GRAY)
+        dictionary = aruco.getPredefinedDictionary(dictionary_id)
+
+        if hasattr(aruco, "ArucoDetector"):
+            detector = aruco.ArucoDetector(dictionary)
+            corners, ids, _ = detector.detectMarkers(gray)
+        else:
+            corners, ids, _ = aruco.detectMarkers(gray, dictionary)
+
+        detected = ids is not None and len(ids) > 0
+        tag_id = int(ids[0][0]) if detected else None
+
+        if self.config.SHOW_DEBUG_WINDOW:
+            if detected:
+                aruco.drawDetectedMarkers(frame, corners, ids)
+            self.cv2.imshow("AprilTag Detector", frame)
+            self.cv2.waitKey(1)
+
+        return detected, tag_id
+
     def process_frame(self, color_image):
         height, width = color_image.shape[:2]
         if height == 0 or width == 0:

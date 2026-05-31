@@ -4,7 +4,15 @@
 
 class PathPlanner:
     def __init__(self):
+        self.kfs_grid = {"R1": None, "R2": None, "Fake": None}
         print("[INFO] Path Planner siap dalam mode Deterministic Waypoints.")
+
+    def set_kfs_grid(self, kfs_type, row, col):
+        """Menyimpan koordinat grid KFS dari dashboard operator."""
+        if kfs_type not in self.kfs_grid:
+            raise ValueError(f"Jenis KFS tidak dikenal: {kfs_type}")
+        self.kfs_grid[kfs_type] = (row, col)
+        print(f"[PLANNER] KFS {kfs_type} diset ke grid ({row}, {col})")
 
     def get_arena_1_target(self):
         """

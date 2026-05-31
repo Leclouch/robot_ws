@@ -4,7 +4,7 @@
 import time
 from hardware.serial_interface import RobotController
 from core.path_planner import PathPlanner
-from config import ActuatorConfig, VisionConfig
+from config import ActuatorConfig
 from vision.visual_servoing import SpearheadVisualServo
 
 class AutonomousFSM:
@@ -15,6 +15,7 @@ class AutonomousFSM:
         
         # Variabel pemantau status arena aktif (bisa dibaca oleh modul GUI nanti)
         self.current_arena = "STANDBY" 
+        self.is_running = True
         
         # Jeda waktu tunggu koneksi USB serial stabil saat program baru dibuka
         time.sleep(3)
@@ -28,49 +29,69 @@ class AutonomousFSM:
         print("\n" + "="*40)
         print("[FSM] >>> STRATEGI ARENA 1 DIMULAI <<<")
         print("="*40)
-        self.robot.set_led(1, 0, 255, 0) # LED Hijau = Robot sedang berjalan
+        self.robot.set_led(1, 0, 255, 0) # LED Hijau 
 
-        # 1. Ambil koordinat tujuan dari planner lalu gerakkan sasis
-        fwd, left = self.planner.get_arena_1_target()
-        print(f"[ARENA 1] Navigasi ke Rak -> Fwd: {fwd}m, Left: {left}m")
-        self.robot.move_relative(forward=fwd, left=left)
-        if not self.robot.wait_until_idle(): return False # Berhenti jika kabel putus/timeout
-
-        # 2. Transisi ke Visual Servoing untuk penguncian target tingkat milimeter
-        print("[ARENA 1] Mengaktifkan Posisi via Visual Servoing...")
-        self.robot.set_led(3, 255, 255, 0) # LED Bernapas Kuning = Mode Tracking Kamera
+        # 1. Visual Servoing (Koreksi Kanan/Kiri Pas)
+        print("[ARENA 1] Mengaktifkan Visual Servoing...")
+        self.robot.set_led(3, 255, 255, 0) # Bernapas Kuning
         vision = SpearheadVisualServo()
+        
+        # Fungsi align() ini membaca kamera dan menggerakkan sasis kanan/kiri
+        # sampai centroid target sejajar dengan garis target vertikal.
         if not vision.align(self.robot):
             return False
         print("[ARENA 1] Target Terkunci Presisi!")
 
-        # 3. Urutan Eksekusi Mekanis Pengambilan Objek (Pindahan Macro M C++)
-        print("[ARENA 1] Menurunkan Lengan Mekanik...")
-        self.robot.set_led(1, 0, 0, 255) # LED Biru = Aktuator bekerja
+        # 2. Gerakan Sequence Makro Ambil
+        print("[ARENA 1] Menurunkan Arm...")
+        self.robot.set_led(1, 0, 0, 255) # Biru
         self.robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
         time.sleep(ActuatorConfig.DELAY_ARM_SEC)
 
-        print("[ARENA 1] Sasis Maju Buta ke Posisi Ambil...")
-        self.robot.move_relative(forward=VisionConfig.SPEARHEAD_FINAL_APPROACH_M)
+        print("[ARENA 1] Mundur 0.85m...")
+        self.robot.move_relative(forward=-0.85)
         if not self.robot.wait_until_idle(): return False
 
-        print("[ARENA 1] Mengunci Gripper (Capit)...")
+        print("[ARENA 1] Menutup Gripper...")
         self.robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_CLOSE)
         time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
 
-        print("[ARENA 1] Mengangkat Lengan ke Atas...")
+        print("[ARENA 1] Mengangkat Arm...")
         self.robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
         time.sleep(ActuatorConfig.DELAY_ARM_SEC)
 
-        print("[ARENA 1] Sasis Mundur Mengamankan Posisi...")
+        print("[ARENA 1] Maju 0.5m...")
         self.robot.move_relative(forward=0.50)
         if not self.robot.wait_until_idle(): return False
 
-        print("[ARENA 1] Rotasi Sasis 180 Derajat (Balik Kanan)...")
+        print("[ARENA 1] Rotate 180 Derajat...")
         self.robot.move_relative(turn_deg=180.0)
         if not self.robot.wait_until_idle(): return False
 
-        print("[FSM] >>> ARENA 1 SELESAI DENGAN SUKSES <<<")
+        # 3. Logika Deteksi AprilTag
+        print("[ARENA 1] Mencari AprilTag...")
+        apriltag_detected = False
+        
+        # Loop sampai AprilTag terlihat
+        while not apriltag_detected:
+            apriltag_detected, tag_id = vision.detect_apriltag()
+            
+            if not self.is_running: return False # Proteksi jika E-Stop ditekan
+            time.sleep(0.1)
+
+        print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
+        self.robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
+        time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+
+        print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
+        # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
+        while apriltag_detected:
+            apriltag_detected, tag_id = vision.detect_apriltag()
+            
+            if not self.is_running: return False 
+            time.sleep(0.1)
+
+        print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
         return True
 
     # ==========================================
@@ -151,6 +172,11 @@ class AutonomousFSM:
         """Fungsi utama pembuka jalannya laga otonom tanpa intervensi keyboard."""
         print("\n=== SYSTEM STANDBY: MENUNGGU SINYAL TOMBOL START DI SASIS ===")
         input("Tekan [ENTER] pada laptop untuk mensimulasikan penekanan tombol START fisik...")
+        self.trigger_full_auto()
+
+    def trigger_full_auto(self):
+        """Memulai rangkaian full auto dari GUI atau wrapper lain."""
+        self.is_running = True
         
         # Reset nilai koordinat odometri di titik awal awal lapangan
         self.robot.zero_odom()
@@ -180,8 +206,40 @@ class AutonomousFSM:
         self.robot.set_led(2, 0, 255, 0) # LED Berkedip Hijau tanda finish sempurna
         self.robot.trigger_buzzer(1500)
 
+    def trigger_retry_arena(self, arena_id):
+        """Menjalankan ulang arena tertentu dari dashboard."""
+        self.is_running = True
+        if arena_id == 1:
+            self.current_arena = "RETRY_ARENA_1"
+            if not self.run_arena_1():
+                self.emergency_stop_handler("Retry Arena 1 gagal")
+        elif arena_id == 2:
+            self.current_arena = "RETRY_ARENA_2"
+            if not self.run_arena_2():
+                self.emergency_stop_handler("Retry Arena 2 gagal")
+        elif arena_id == 3:
+            self.current_arena = "RETRY_ARENA_3"
+            if not self.run_arena_3():
+                self.emergency_stop_handler("Retry Arena 3 gagal")
+        else:
+            print(f"[WARNING] Arena retry tidak dikenal: {arena_id}")
+
+    def trigger_stop(self):
+        """Callback dashboard untuk menghentikan robot dan FSM."""
+        self.is_running = False
+        self.current_arena = "EMERGENCY_STOP"
+        self.robot.e_stop()
+
+    def trigger_reset(self):
+        """Callback dashboard untuk reset odometri dan state aman."""
+        self.is_running = False
+        self.current_arena = "STANDBY"
+        self.robot.e_stop()
+        self.robot.zero_odom()
+
     def emergency_stop_handler(self, alasan_fail):
         """Menghentikan robot seketika jika terdeteksi kegagalan gerak di arena."""
+        self.is_running = False
         print(f"\n[FATAL ERROR] {alasan_fail}!")
         print("[RECOVERY] Mengirimkan sinyal rem darurat ke sasis bawah...")
         self.robot.e_stop()
@@ -189,4 +247,5 @@ class AutonomousFSM:
 
     def shutdown(self):
         """Mematikan thread serial background pendukung saat aplikasi di-close."""
+        self.is_running = False
         self.robot.close()
