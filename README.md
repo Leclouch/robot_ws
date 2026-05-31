@@ -65,6 +65,12 @@ Alur utama robot ada di `core/fsm_master.py`. Modul vision dipanggil setelah
 robot sampai ke lokasi rak spearhead, lalu hanya melakukan koreksi kanan/kiri.
 Setelah target lock, FSM melanjutkan maju buta dan aktuasi arm/gripper.
 
+## Dashboard
+
+`python main.py` menjalankan dashboard Tkinter di main thread dan FSM di
+background thread. Dashboard menampilkan odometri, status arena, koneksi serial,
+dan tombol `EMERGENCY STOP` yang langsung mengirim command stop ke Teensy.
+
 ## Debug Target Vision
 
 Untuk tuning garis target spearhead tanpa menggerakkan robot:

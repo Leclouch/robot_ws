@@ -2,7 +2,6 @@
 # FILE: core/fsm_master.py
 # ==========================================
 import time
-import threading
 from hardware.serial_interface import RobotController
 from core.path_planner import PathPlanner
 from config import ActuatorConfig, VisionConfig
@@ -15,7 +14,7 @@ class AutonomousFSM:
         self.planner = PathPlanner()
         
         # Variabel pemantau status arena aktif (bisa dibaca oleh modul GUI nanti)
-        self.current_arena = "ARENA_1" 
+        self.current_arena = "STANDBY" 
         
         # Jeda waktu tunggu koneksi USB serial stabil saat program baru dibuka
         time.sleep(3)
