@@ -5,7 +5,8 @@ import time
 import threading
 from hardware.serial_interface import RobotController
 from core.path_planner import PathPlanner
-from config import ActuatorConfig
+from config import ActuatorConfig, VisionConfig
+from vision.visual_servoing import SpearheadVisualServo
 
 class AutonomousFSM:
     def __init__(self):
@@ -39,7 +40,9 @@ class AutonomousFSM:
         # 2. Transisi ke Visual Servoing untuk penguncian target tingkat milimeter
         print("[ARENA 1] Mengaktifkan Posisi via Visual Servoing...")
         self.robot.set_led(3, 255, 255, 0) # LED Bernapas Kuning = Mode Tracking Kamera
-        time.sleep(1.5) # Jeda simulasi (tunggu program kamera OpenCV mengunci objek)
+        vision = SpearheadVisualServo()
+        if not vision.align(self.robot):
+            return False
         print("[ARENA 1] Target Terkunci Presisi!")
 
         # 3. Urutan Eksekusi Mekanis Pengambilan Objek (Pindahan Macro M C++)
@@ -48,8 +51,8 @@ class AutonomousFSM:
         self.robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
         time.sleep(ActuatorConfig.DELAY_ARM_SEC)
 
-        print("[ARENA 1] Sasis Maju Halus Menabrak/Mendekati Objek...")
-        self.robot.move_relative(forward=-1.20, left=0.70)
+        print("[ARENA 1] Sasis Maju Buta ke Posisi Ambil...")
+        self.robot.move_relative(forward=VisionConfig.SPEARHEAD_FINAL_APPROACH_M)
         if not self.robot.wait_until_idle(): return False
 
         print("[ARENA 1] Mengunci Gripper (Capit)...")

@@ -55,7 +55,34 @@ class VisionConfig:
     FRAME_WIDTH = 640
     FRAME_HEIGHT = 480
     TARGET_FPS = 30
+    SHOW_DEBUG_WINDOW = True
     
     # --- Toleransi Error Visual ---
     PIXEL_TOLERANCE_X = 15 # Robot berhenti koreksi visual jika error pixel di bawah angka ini
     PIXEL_TOLERANCE_Y = 15
+
+    # --- Konfigurasi Spearhead YOLO --- "fist_gray","palm_gray"
+    SPEARHEAD_MODEL_PATH = "vision/assets/best.pt"
+    SPEARHEAD_CLASS_NAMES = ("grey spear",)
+    SPEARHEAD_CONF_THRESHOLD = 0.2
+    SPEARHEAD_IMGSZ = 960
+
+    # Titik target di frame kamera. X=0 kiri, X=1 kanan. Y=0 atas, Y=1 bawah.
+    SPEARHEAD_TARGET_X_RATIO = 0.17
+    SPEARHEAD_TARGET_Y_RATIO = 0.85
+
+    # Tracking multi-frame agar centroid tidak loncat-loncat.
+    SPEARHEAD_BUFFER_SIZE = 5
+    SPEARHEAD_GATE_THRESHOLD = 0.35
+    SPEARHEAD_MAX_MISSED_FRAMES = 5
+
+    # Vision hanya melakukan koreksi kiri-kanan. Nilai positif berarti geser kiri.
+    SPEARHEAD_STRAFE_M_PER_NORM_ERROR = 0.30
+    SPEARHEAD_MIN_STRAFE_M = 0.01
+    SPEARHEAD_MAX_STRAFE_M = 0.10
+    SPEARHEAD_STRAFE_SIGN = 1.0
+    SPEARHEAD_ACTION_DELAY_SEC = 0.20
+    SPEARHEAD_ALIGN_TIMEOUT_SEC = 20.0
+
+    # Setelah target lock, FSM maju buta sejauh ini untuk masuk posisi ambil.
+    SPEARHEAD_FINAL_APPROACH_M = 1.0

@@ -70,8 +70,8 @@ class RobotController:
             print(f"[SUCCESS] Terhubung dengan {SerialConfig.PORT}! Tunggu bootloader Teensy...")
             time.sleep(2.0) # Wajib jeda 2 detik agar Teensy siap menerima command
             
-            self._send_hardware_config() # Tembak config setelah konek
             self.is_connected = True
+            self._send_hardware_config() # Tembak config setelah konek
         except (serial.SerialException, OSError):
             pass # Gagal konek, akan dicoba lagi di iterasi loop selanjutnya
 
@@ -119,7 +119,11 @@ class RobotController:
     def set_servo(self, pin, angle): 
         self.send_cmd(f"V {pin} {angle}")
         
-    def set_pneumatics(self, front, back): 
+    def set_pneumatics(self, front=None, back=None, front_state=None, back_state=None):
+        if front_state is not None:
+            front = front_state
+        if back_state is not None:
+            back = back_state
         self.send_cmd(f"P {1 if front else 0} {1 if back else 0}")
         
     def set_deadwheels(self, state): 
@@ -176,3 +180,21 @@ class RobotController:
             
             d_err = math.hypot(self.target_x - self.odom_x, self.target_y - self.odom_y)
             a_err = abs((self.target_theta_deg - self.odom_theta_deg + 180) % 360 - 180)
+            if d_err <= d_tol and a_err <= a_tol:
+                time.sleep(KinematicConfig.SETTLE_TIME)
+                return True
+
+            time.sleep(0.02)
+
+        print(
+            "[WARNING] Timeout menunggu idle. "
+            f"d_err={d_err:.3f}m a_err={a_err:.2f}deg"
+        )
+        return False
+
+    def close(self):
+        """Mematikan thread serial dan menutup port dengan aman."""
+        self.running = False
+        if self.worker_thread.is_alive():
+            self.worker_thread.join(timeout=1.0)
+        self._handle_disconnect()
