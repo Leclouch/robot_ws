@@ -75,7 +75,7 @@ class VisionConfig:
     SPEARHEAD_IMGSZ = 640
 
     # Garis target di frame kamera. Vision hanya menyamakan X objek dengan garis ini.
-    SPEARHEAD_TARGET_X_RATIO = 0.52
+    SPEARHEAD_TARGET_X_RATIO = 0.5950
     # Y tetap disimpan untuk normalisasi tracking/debug, bukan syarat alignment.
     SPEARHEAD_TARGET_Y_RATIO = 0.85
 
