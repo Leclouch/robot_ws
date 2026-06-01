@@ -108,3 +108,38 @@ q    keluar
 Vision hanya mengejar supaya centroid objek sejajar dengan garis vertikal target.
 Jarak vertikal objek terhadap goal tidak dipakai sebagai syarat lock. Salin nilai
 `SPEARHEAD_TARGET_X_RATIO` yang sudah pas ke `VisionConfig` di `config.py`.
+
+## Test Vision Alignment
+
+Untuk mengetes deteksi spearhead dan koreksi kiri/kanan saja:
+
+```bash
+source .venv/bin/activate
+python scripts/test_vision_alignment.py
+```
+
+Mode di atas hanya visual. Untuk mengizinkan robot bergerak kiri/kanan:
+
+```bash
+python scripts/test_vision_alignment.py --move
+```
+
+Untuk Jetson yang lambat atau mode headless/no GUI:
+
+```bash
+python scripts/test_vision_alignment.py --move --no-gui --width 320 --height 240 --imgsz 480
+```
+
+Kamera disetel low-latency dengan buffer kecil dan membuang frame lama sebelum
+inferensi agar robot tidak mengejar posisi objek yang sudah basi.
+
+Kontrol keyboard:
+
+```text
+space  toggle auto correction
+m      satu langkah koreksi
+e      emergency stop
+q      keluar
+```
+
+Script ini tidak menjalankan maju, rotasi, arm, atau gripper.

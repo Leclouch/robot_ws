@@ -67,8 +67,19 @@ class SpearheadVisualServo:
         self.cap.set(self.cv2.CAP_PROP_FRAME_WIDTH, self.config.FRAME_WIDTH)
         self.cap.set(self.cv2.CAP_PROP_FRAME_HEIGHT, self.config.FRAME_HEIGHT)
         self.cap.set(self.cv2.CAP_PROP_FPS, self.config.TARGET_FPS)
+        self.cap.set(self.cv2.CAP_PROP_BUFFERSIZE, self.config.LOW_LATENCY_BUFFER_SIZE)
         if not self.cap.isOpened():
             raise RuntimeError(f"Failed to open camera index {self.config.CAMERA_INDEX}")
+
+    def read_latest_frame(self):
+        """Drop stale buffered frames and return the newest available frame."""
+        if self.cap is None:
+            self._open_camera()
+
+        flush_count = max(0, int(self.config.FRAME_FLUSH_COUNT))
+        for _ in range(flush_count):
+            self.cap.grab()
+        return self.cap.read()
 
     def close(self):
         if self.cap:
@@ -89,7 +100,7 @@ class SpearheadVisualServo:
 
         try:
             while time.time() - start_time < self.config.SPEARHEAD_ALIGN_TIMEOUT_SEC:
-                ret, frame = self.cap.read()
+                ret, frame = self.read_latest_frame()
                 if not ret:
                     print("[VISION] Gagal membaca frame kamera.")
                     time.sleep(0.05)
@@ -142,7 +153,7 @@ class SpearheadVisualServo:
         if self.cap is None:
             self._open_camera()
 
-        ret, frame = self.cap.read()
+        ret, frame = self.read_latest_frame()
         if not ret:
             return False, None
 

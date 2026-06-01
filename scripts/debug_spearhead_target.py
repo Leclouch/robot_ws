@@ -9,6 +9,7 @@ Keyboard:
 
 import os
 import sys
+import argparse
 
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -34,6 +35,22 @@ def print_ratios(target_x_ratio):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Visual-only spearhead target-line tuner.")
+    parser.add_argument("--width", type=int, default=None)
+    parser.add_argument("--height", type=int, default=None)
+    parser.add_argument("--imgsz", type=int, default=None)
+    parser.add_argument("--flush", type=int, default=None)
+    args = parser.parse_args()
+
+    if args.width is not None:
+        VisionConfig.FRAME_WIDTH = args.width
+    if args.height is not None:
+        VisionConfig.FRAME_HEIGHT = args.height
+    if args.imgsz is not None:
+        VisionConfig.SPEARHEAD_IMGSZ = args.imgsz
+    if args.flush is not None:
+        VisionConfig.FRAME_FLUSH_COUNT = args.flush
+
     cv2 = __import__("cv2")
 
     servo = SpearheadVisualServo()
@@ -45,7 +62,7 @@ def main():
 
     try:
         while True:
-            ret, frame = servo.cap.read()
+            ret, frame = servo.read_latest_frame()
             if not ret:
                 print("[DEBUG] Failed to capture frame.")
                 continue

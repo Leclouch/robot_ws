@@ -61,6 +61,8 @@ class VisionConfig:
     FRAME_HEIGHT = 480
     TARGET_FPS = 30
     SHOW_DEBUG_WINDOW = True
+    LOW_LATENCY_BUFFER_SIZE = 1
+    FRAME_FLUSH_COUNT = 2
     
     # --- Toleransi Error Visual ---
     PIXEL_TOLERANCE_X = 15 # Robot berhenti koreksi visual jika error pixel di bawah angka ini
@@ -70,7 +72,7 @@ class VisionConfig:
     SPEARHEAD_MODEL_PATH = "vision/assets/best.pt"
     SPEARHEAD_CLASS_NAMES = ("grey spear",)
     SPEARHEAD_CONF_THRESHOLD = 0.2
-    SPEARHEAD_IMGSZ = 960
+    SPEARHEAD_IMGSZ = 640
 
     # Garis target di frame kamera. Vision hanya menyamakan X objek dengan garis ini.
     SPEARHEAD_TARGET_X_RATIO = 0.52
