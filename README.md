@@ -130,6 +130,12 @@ Untuk Jetson yang lambat atau mode headless/no GUI:
 python scripts/test_vision_alignment.py --move --no-gui --width 320 --height 240 --imgsz 480
 ```
 
+untuk test lagi
+
+```bash
+python scripts/test_vision_alignment.py --move --width 320 --height 240 --imgsz 480 --min-step 0.03 --max-step 0.08 --motion-timeout 12
+```
+
 Kamera disetel low-latency dengan buffer kecil dan membuang frame lama sebelum
 inferensi agar robot tidak mengejar posisi objek yang sudah basi.
 
