@@ -60,7 +60,7 @@ def run_correction(robot, best_track, err_x_px, args):
 
     left_cmd = compute_left_command(best_track, err_x_px, args)
     print(f"[VISION] Move correction: left={left_cmd:.3f}m err_x={err_x_px:.1f}px")
-    robot.move_relative(left=left_cmd)
+    robot.move_relative(left=-left_cmd)
     return robot.wait_until_idle(timeout=args.motion_timeout)
 
 

@@ -40,18 +40,18 @@ class KinematicConfig:
 class ActuatorConfig:
     # --- Konfigurasi Channel Servo (Via PCA9685 0x60) ---
     PIN_GRIP = 0
-    PIN_ARM_SPEAR = 1
+    PIN_ARM_SPEAR = 4
     
     # --- Konfigurasi Sudut Gerak Servo ---
-    GRIP_OPEN = 155
-    GRIP_CLOSE = 65
+    GRIP_OPEN = 158
+    GRIP_CLOSE = 55
     ARM_UP = 0         
-    ARM_DOWN = 95      
+    ARM_DOWN = 85      
     
     # --- Waktu Mekanik (Jeda Gerak Aman) ---
     # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna
-    DELAY_ARM_SEC = 0.6    # Estimasi lengan turun/naik sempurna
-    DELAY_GRIP_SEC = 0.5   # Estimasi capit mengunci kuat
+    DELAY_ARM_SEC = 1.0    # Estimasi lengan turun/naik sempurna
+    DELAY_GRIP_SEC = 1.0   # Estimasi capit mengunci kuat
     DELAY_PNEU_SEC = 0.4   # Waktu aktuasi tabung pneumatik memompa/membuang udara
 
 class VisionConfig:
@@ -75,7 +75,7 @@ class VisionConfig:
     SPEARHEAD_IMGSZ = 640
 
     # Garis target di frame kamera. Vision hanya menyamakan X objek dengan garis ini.
-    SPEARHEAD_TARGET_X_RATIO = 0.5950
+    SPEARHEAD_TARGET_X_RATIO = 0.6350
     # Y tetap disimpan untuk normalisasi tracking/debug, bukan syarat alignment.
     SPEARHEAD_TARGET_Y_RATIO = 0.85
 
@@ -87,7 +87,7 @@ class VisionConfig:
     # Vision hanya melakukan koreksi kiri-kanan. Nilai positif berarti geser kiri.
     SPEARHEAD_STRAFE_M_PER_NORM_ERROR = 0.30
     SPEARHEAD_MIN_STRAFE_M = 0.01
-    SPEARHEAD_MAX_STRAFE_M = 0.10
+    SPEARHEAD_MAX_STRAFE_M = 0.05
     SPEARHEAD_STRAFE_SIGN = 1.0
     SPEARHEAD_ACTION_DELAY_SEC = 0.20
     SPEARHEAD_ALIGN_TIMEOUT_SEC = 20.0

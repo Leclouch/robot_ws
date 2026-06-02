@@ -6,6 +6,9 @@ from hardware.serial_interface import RobotController
 from core.path_planner import PathPlanner
 from config import ActuatorConfig
 from vision.visual_servoing import SpearheadVisualServo
+from core.arena_1 import run_arena_1
+from core.arena_2 import run_arena_2
+from core.arena_3 import run_arena_3
 
 class AutonomousFSM:
     def __init__(self):
@@ -26,144 +29,20 @@ class AutonomousFSM:
     # STRATEGI ARENA 1: START & AMBIL SPEARHEAD
     # ==========================================
     def run_arena_1(self):
-        print("\n" + "="*40)
-        print("[FSM] >>> STRATEGI ARENA 1 DIMULAI <<<")
-        print("="*40)
-        self.robot.set_led(1, 0, 255, 0) # LED Hijau 
-
-        # 1. Visual Servoing (Koreksi Kanan/Kiri Pas)
-        print("[ARENA 1] Mengaktifkan Visual Servoing...")
-        self.robot.set_led(3, 255, 255, 0) # Bernapas Kuning
         vision = SpearheadVisualServo()
-        
-        # Fungsi align() ini membaca kamera dan menggerakkan sasis kanan/kiri
-        # sampai centroid target sejajar dengan garis target vertikal.
-        if not vision.align(self.robot):
-            return False
-        print("[ARENA 1] Target Terkunci Presisi!")
-
-        # 2. Gerakan Sequence Makro Ambil
-        print("[ARENA 1] Menurunkan Arm...")
-        self.robot.set_led(1, 0, 0, 255) # Biru
-        self.robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
-        time.sleep(ActuatorConfig.DELAY_ARM_SEC)
-
-        print("[ARENA 1] Mundur 0.85m...")
-        self.robot.move_relative(forward=-0.85)
-        if not self.robot.wait_until_idle(): return False
-
-        print("[ARENA 1] Menutup Gripper...")
-        self.robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_CLOSE)
-        time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
-
-        print("[ARENA 1] Mengangkat Arm...")
-        self.robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
-        time.sleep(ActuatorConfig.DELAY_ARM_SEC)
-
-        print("[ARENA 1] Maju 0.5m...")
-        self.robot.move_relative(forward=0.50)
-        if not self.robot.wait_until_idle(): return False
-
-        print("[ARENA 1] Rotate 180 Derajat...")
-        self.robot.move_relative(turn_deg=180.0)
-        if not self.robot.wait_until_idle(): return False
-
-        # 3. Logika Deteksi AprilTag
-        print("[ARENA 1] Mencari AprilTag...")
-        apriltag_detected = False
-        
-        # Loop sampai AprilTag terlihat
-        while not apriltag_detected:
-            apriltag_detected, tag_id = vision.detect_apriltag()
-            
-            if not self.is_running: return False # Proteksi jika E-Stop ditekan
-            time.sleep(0.1)
-
-        print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
-        self.robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
-        time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
-
-        print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
-        # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
-        while apriltag_detected:
-            apriltag_detected, tag_id = vision.detect_apriltag()
-            
-            if not self.is_running: return False 
-            time.sleep(0.1)
-
-        print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
-        return True
+        return run_arena_1(self.robot, vision, lambda: self.is_running)
 
     # ==========================================
     # STRATEGI ARENA 2: SEKUENS PNEUMATIK FOREST
     # ==========================================
     def run_arena_2(self):
-        print("\n" + "="*40)
-        print("[FSM] >>> STRATEGI ARENA 2 DIMULAI <<<")
-        print("="*40)
-        self.robot.set_led(1, 255, 165, 0) # LED Oranye = Memasuki Wilayah Hutan
-
-        # 1. Bergerak dari area Rak menuju depan gerbang Hutan
-        fwd, left = self.planner.get_arena_2_target()
-        print(f"[ARENA 2] Menuju Depan Forest -> Fwd: {fwd}m, Left: {left}m")
-        self.robot.move_relative(forward=fwd, left=left)
-        if not self.robot.wait_until_idle(): return False
-
-        # 2. Urutan Manjat Hutan Berbasis Waktu & Sensor (Pindahan Macro N C++)
-        print("[ARENA 2] Mengembangkan Kedua Pneumatik (HIGH) & Proteksi Deadwheel...")
-        self.robot.set_pneumatics(front_state=True, back_state=True)
-        self.robot.set_deadwheels(False) # Matikan deadwheel agar akumulasi odometri aman
-        time.sleep(ActuatorConfig.DELAY_PNEU_SEC)
-
-        print("[ARENA 2] Langkah 1: Dorong Maju Sasis Pertama (55cm)...")
-        self.robot.move_relative(forward=0.55)
-        if not self.robot.wait_until_idle(): return False
-
-        print("[ARENA 2] Langkah 2: Menarik Naik Pneumatik DEPAN (LOW)...")
-        self.robot.set_pneumatics(front_state=False, back_state=True)
-        time.sleep(ActuatorConfig.DELAY_PNEU_SEC)
-
-        print("[ARENA 2] Langkah 3: Dorong Maju Sasis Kedua (47cm)...")
-        self.robot.move_relative(forward=0.47)
-        if not self.robot.wait_until_idle(): return False
-
-        print("[ARENA 2] Langkah 4: Menarik Naik Pneumatik BELAKANG (LOW)...")
-        self.robot.set_pneumatics(front_state=False, back_state=False)
-        time.sleep(ActuatorConfig.DELAY_PNEU_SEC)
-
-        print("[ARENA 2] Langkah 5: Dorong Akhir Melewati Batas Keluar Hutan (17cm)...")
-        self.robot.move_relative(forward=0.17)
-        if not self.robot.wait_until_idle(): return False
-
-        print("[FSM] >>> ARENA 2 SELESAI DENGAN SUKSES <<<")
-        return True
+        return run_arena_2(self.robot, self.planner, lambda: self.is_running)
 
     # ==========================================
     # STRATEGI ARENA 3: SCORING / DROP OBJEK
     # ==========================================
     def run_arena_3(self):
-        print("\n" + "="*40)
-        print("[FSM] >>> STRATEGI ARENA 3 DIMULAI <<<")
-        print("="*40)
-        self.robot.set_led(1, 255, 0, 255) # LED Ungu = Zona Pelepasan Poin
-
-        # 1. Navigasi menuju titik tiang scoring akhir
-        fwd, left = self.planner.get_arena_3_target()
-        print(f"[ARENA 3] Navigasi ke Tiang Sasaran -> Fwd: {fwd}m")
-        self.robot.move_relative(forward=fwd, left=left)
-        if not self.robot.wait_until_idle(): return False
-
-        # 2. Urutan Mekanis Pelepasan Objek (Scoring)
-        print("[ARENA 3] Menurunkan Lengan untuk Meletakkan Objek...")
-        self.robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
-        time.sleep(ActuatorConfig.DELAY_ARM_SEC)
-
-        print("[ARENA 3] Membuka Gripper...")
-        self.robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
-        time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
-
-        print("[FSM] >>> ARENA 3 SELESAI DENGAN SUKSES <<<")
-        return True
+        return run_arena_3(self.robot, self.planner, lambda: self.is_running)
 
     # ==========================================
     # LOOP UTAMA PENGENDALI OTOMATIS (RUNNER)

@@ -88,18 +88,54 @@ class SpearheadVisualServo:
         if self.config.SHOW_DEBUG_WINDOW:
             self.cv2.destroyAllWindows()
 
-    def align(self, robot):
+    def compute_left_command(self, best_track, err_x_px, scale, min_step, max_step, sign):
+        err_norm, _ = best_track.get_smoothed_coords()
+        move_dist = abs(err_norm) * scale
+        move_dist = max(min_step, move_dist)
+        move_dist = min(max_step, move_dist)
+
+        # err_x > 0: object appears right of target line, so shift robot right.
+        left_cmd = -move_dist if err_x_px > 0 else move_dist
+        return left_cmd * sign
+
+    def align(
+        self,
+        robot,
+        pixel_tolerance=None,
+        scale=None,
+        min_step=None,
+        max_step=None,
+        delay=None,
+        sign=None,
+        motion_timeout=5.0,
+        align_timeout=None,
+    ):
         """
         Strafe left/right until the target class is horizontally locked.
 
         Returns True when the target is locked. The final forward approach and
         gripper sequence intentionally remain owned by the FSM.
         """
+        if pixel_tolerance is None:
+            pixel_tolerance = self.config.PIXEL_TOLERANCE_X
+        if scale is None:
+            scale = self.config.SPEARHEAD_STRAFE_M_PER_NORM_ERROR
+        if min_step is None:
+            min_step = self.config.SPEARHEAD_MIN_STRAFE_M
+        if max_step is None:
+            max_step = getattr(self.config, "SPEARHEAD_MAX_STRAFE_M", 0.05)
+        if delay is None:
+            delay = self.config.SPEARHEAD_ACTION_DELAY_SEC
+        if sign is None:
+            sign = self.config.SPEARHEAD_STRAFE_SIGN
+        if align_timeout is None:
+            align_timeout = self.config.SPEARHEAD_ALIGN_TIMEOUT_SEC
+
         self._open_camera()
         start_time = time.time()
 
         try:
-            while time.time() - start_time < self.config.SPEARHEAD_ALIGN_TIMEOUT_SEC:
+            while time.time() - start_time < align_timeout:
                 ret, frame = self.read_latest_frame()
                 if not ret:
                     print("[VISION] Gagal membaca frame kamera.")
@@ -113,25 +149,20 @@ class SpearheadVisualServo:
                     time.sleep(0.03)
                     continue
 
-                if abs(err_x_px) <= self.config.PIXEL_TOLERANCE_X:
-                    print("[VISION] Spearhead sejajar dengan garis target vertikal.")
+                if abs(err_x_px) <= pixel_tolerance:
+                    print(f"[VISION] Spearhead sejajar dengan garis target vertikal: {err_x_px:.1f}px.")
                     return True
 
-                if time.time() - self.last_cmd_time < self.config.SPEARHEAD_ACTION_DELAY_SEC:
+                if time.time() - self.last_cmd_time < delay:
                     continue
 
-                err_norm, _ = best_track.get_smoothed_coords()
-                move_dist = abs(err_norm) * self.config.SPEARHEAD_STRAFE_M_PER_NORM_ERROR
-                move_dist = max(self.config.SPEARHEAD_MIN_STRAFE_M, move_dist)
-                move_dist = min(self.config.SPEARHEAD_MAX_STRAFE_M, move_dist)
-
-                # err_x > 0: target appears right of target marker, so robot shifts right.
-                left_cmd = -move_dist if err_x_px > 0 else move_dist
-                left_cmd *= self.config.SPEARHEAD_STRAFE_SIGN
+                left_cmd = self.compute_left_command(
+                    best_track, err_x_px, scale, min_step, max_step, sign
+                )
 
                 print(f"[VISION] Koreksi strafe: left={left_cmd:.3f}m err_x={err_x_px:.1f}px")
-                robot.move_relative(left=left_cmd)
-                if not robot.wait_until_idle():
+                robot.move_relative(left=-left_cmd)
+                if not robot.wait_until_idle(timeout=motion_timeout):
                     return False
                 self.last_cmd_time = time.time()
 
