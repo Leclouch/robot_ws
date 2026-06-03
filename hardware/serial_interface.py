@@ -119,6 +119,16 @@ class RobotController:
             return False
         return self._write_raw(cmd_str)
 
+    def wait_for_connection(self, timeout=None):
+        """Menunggu thread auto-reconnect berhasil menyambung ulang serial."""
+        t_out = timeout if timeout is not None else KinematicConfig.CONNECTION_RECOVERY_TIMEOUT
+        start_time = time.time()
+        while time.time() - start_time < t_out:
+            if self.is_connected:
+                return True
+            time.sleep(0.1)
+        return self.is_connected
+
     # ==========================================
     # PRIMITIF AKTUATOR & FEEDBACK
     # ==========================================
@@ -182,8 +192,11 @@ class RobotController:
         start_time = time.time()
         while time.time() - start_time < t_out:
             if not self.is_connected:
-                print("[WARNING] Deteksi putus koneksi saat bergerak! Pembatalan antrean gerakan.")
-                return False 
+                print("[WARNING] Deteksi putus koneksi saat bergerak. Menunggu reconnect...")
+                if not self.wait_for_connection():
+                    print("[WARNING] Reconnect gagal. Pembatalan antrean gerakan.")
+                    return False
+                print("[INFO] Serial tersambung ulang. Melanjutkan pemantauan idle.")
             
             d_err = math.hypot(self.target_x - self.odom_x, self.target_y - self.odom_y)
             a_err = abs((self.target_theta_deg - self.odom_theta_deg + 180) % 360 - 180)
