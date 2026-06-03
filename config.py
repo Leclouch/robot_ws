@@ -50,8 +50,8 @@ class ActuatorConfig:
     
     # --- Waktu Mekanik (Jeda Gerak Aman) ---
     # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna
-    DELAY_ARM_SEC = 1.0    # Estimasi lengan turun/naik sempurna
-    DELAY_GRIP_SEC = 1.0   # Estimasi capit mengunci kuat
+    DELAY_ARM_SEC = 2.0    # Estimasi lengan turun/naik sempurna
+    DELAY_GRIP_SEC = 2.0   # Estimasi capit mengunci kuat
     DELAY_PNEU_SEC = 0.4   # Waktu aktuasi tabung pneumatik memompa/membuang udara
 
 class VisionConfig:
@@ -75,7 +75,7 @@ class VisionConfig:
     SPEARHEAD_IMGSZ = 640
 
     # Garis target di frame kamera. Vision hanya menyamakan X objek dengan garis ini.
-    SPEARHEAD_TARGET_X_RATIO = 0.6350
+    SPEARHEAD_TARGET_X_RATIO = 0.6100
     # Y tetap disimpan untuk normalisasi tracking/debug, bukan syarat alignment.
     SPEARHEAD_TARGET_Y_RATIO = 0.85
 

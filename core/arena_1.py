@@ -33,6 +33,9 @@ def run_arena_1(robot, vision, is_running_cb=None):
     print("[FSM] >>> STRATEGI ARENA 1 DIMULAI <<<")
     print("="*40)
     robot.set_led(1, 0, 255, 0) # LED Hijau 
+    robot.move_relative(left=0.3)
+    time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+
 
     # 1. Visual Servoing (Koreksi Kanan/Kiri Pas)
     print("[ARENA 1] Mengaktifkan Visual Servoing...")
@@ -59,7 +62,7 @@ def run_arena_1(robot, vision, is_running_cb=None):
     time.sleep(ActuatorConfig.DELAY_ARM_SEC)
 
     print("[ARENA 1] Mundur 0.85m...")
-    robot.move_relative(forward=-0.95)
+    robot.move_relative(forward=-0.90)
     if not robot.wait_until_idle(): return False
 
     print("[ARENA 1] Menutup Gripper...")
@@ -78,28 +81,28 @@ def run_arena_1(robot, vision, is_running_cb=None):
     robot.move_relative(turn_deg=180.0)
     if not robot.wait_until_idle(): return False
 
-    # # 3. Logika Deteksi AprilTag
-    # print("[ARENA 1] Mencari AprilTag...")
-    # apriltag_detected = False
+    # 3. Logika Deteksi AprilTag
+    print("[ARENA 1] Mencari AprilTag...")
+    apriltag_detected = False
     
-    # # Loop sampai AprilTag terlihat
-    # while not apriltag_detected:
-    #     apriltag_detected, tag_id = vision.detect_apriltag()
+    # Loop sampai AprilTag terlihat
+    while not apriltag_detected:
+        apriltag_detected, tag_id = vision.detect_apriltag()
         
-    #     if not check_running(): return False # Proteksi jika E-Stop ditekan
-    #     time.sleep(0.1)
+        if not check_running(): return False # Proteksi jika E-Stop ditekan
+        time.sleep(0.1)
 
-    # print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
-    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
-    # time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+    print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
+    robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
+    time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
 
-    # print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
-    # # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
-    # while apriltag_detected:
-    #     apriltag_detected, tag_id = vision.detect_apriltag()
+    print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
+    # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
+    while apriltag_detected:
+        apriltag_detected, tag_id = vision.detect_apriltag()
         
-    #     if not check_running(): return False 
-    #     time.sleep(0.1)
+        if not check_running(): return False 
+        time.sleep(0.1)
 
-    # print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
-    # return True
+    print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
+    return True
