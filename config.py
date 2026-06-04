@@ -50,8 +50,8 @@ class ActuatorConfig:
     
     # --- Waktu Mekanik (Jeda Gerak Aman) ---
     # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna
-    DELAY_ARM_SEC = 2.0    # Estimasi lengan turun/naik sempurna
-    DELAY_GRIP_SEC = 2.0   # Estimasi capit mengunci kuat
+    DELAY_ARM_SEC = 1.0    # Estimasi lengan turun/naik sempurna
+    DELAY_GRIP_SEC = 1.0   # Estimasi capit mengunci kuat
     DELAY_PNEU_SEC = 0.4   # Waktu aktuasi tabung pneumatik memompa/membuang udara
 
 class VisionConfig:
