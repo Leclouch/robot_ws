@@ -3,7 +3,6 @@
 # ==========================================
 import os
 import sys
-import time
 
 # Add project root to sys.path to allow standalone execution
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -12,7 +11,6 @@ if ROOT_DIR not in sys.path:
 
 from hardware.serial_interface import RobotController
 from core.path_planner import PathPlanner
-from config import ActuatorConfig
 
 def run_arena_2(robot, planner, is_running_cb=None):
     """
@@ -42,41 +40,15 @@ def run_arena_2(robot, planner, is_running_cb=None):
 
     if not check_running(): return False
 
-    # 2. Urutan Manjat Hutan Berbasis Waktu & Sensor (Pindahan Macro N C++)
-    print("[ARENA 2] Mengembangkan Kedua Pneumatik (HIGH) & Proteksi Deadwheel...")
-    robot.set_pneumatics(front_state=True, back_state=True)
-    robot.set_deadwheels(False) # Matikan deadwheel agar akumulasi odometri aman
-    time.sleep(ActuatorConfig.DELAY_PNEU_SEC)
+    # 2. Seluruh urutan manjat hutan dijalankan secara atomik oleh Teensy.
+    print("[ARENA 2] Mengirim command Macro N ke Teensy...")
+    if not robot.run_macro_n(): return False
 
     if not check_running(): return False
 
-    print("[ARENA 2] Langkah 1: Dorong Maju Sasis Pertama (55cm)...")
-    robot.move_relative(forward=0.55)
-    if not robot.wait_until_idle(): return False
-
-    if not check_running(): return False
-
-    print("[ARENA 2] Langkah 2: Menarik Naik Pneumatik DEPAN (LOW)...")
-    robot.set_pneumatics(front_state=False, back_state=True)
-    time.sleep(ActuatorConfig.DELAY_PNEU_SEC)
-
-    if not check_running(): return False
-
-    print("[ARENA 2] Langkah 3: Dorong Maju Sasis Kedua (47cm)...")
-    robot.move_relative(forward=0.47)
-    if not robot.wait_until_idle(): return False
-
-    if not check_running(): return False
-
-    print("[ARENA 2] Langkah 4: Menarik Naik Pneumatik BELAKANG (LOW)...")
-    robot.set_pneumatics(front_state=False, back_state=False)
-    time.sleep(ActuatorConfig.DELAY_PNEU_SEC)
-
-    if not check_running(): return False
-
-    print("[ARENA 2] Langkah 5: Dorong Akhir Melewati Batas Keluar Hutan (17cm)...")
-    robot.move_relative(forward=0.17)
-    if not robot.wait_until_idle(): return False
+    # Macro N mematikan deadwheel. Aktifkan kembali untuk navigasi arena berikutnya.
+    print("[ARENA 2] Macro N selesai. Mengaktifkan kembali deadwheel...")
+    robot.set_deadwheels(True)
 
     print("[FSM] >>> ARENA 2 SELESAI DENGAN SUKSES <<<")
     return True

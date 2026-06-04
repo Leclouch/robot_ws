@@ -37,6 +37,7 @@ class KinematicConfig:
     IDLE_TIMEOUT = 15.0    # Batas waktu maksimal tunggu target sebelum dianggap nyangkut (detik)
     SETTLE_TIME = 0.4      # Waktu jeda agar sasis stabil/tidak goyang setelah rem mekanik (detik)
     CONNECTION_RECOVERY_TIMEOUT = 6.0  # Waktu tunggu reconnect sebelum arena dianggap gagal
+    MACRO_N_TIMEOUT = 30.0 # Batas waktu Teensy menyelesaikan seluruh sequence Macro N
 
 class ActuatorConfig:
     # --- Konfigurasi Channel Servo (Via PCA9685 0x60) ---

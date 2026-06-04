@@ -24,6 +24,9 @@ class RobotController:
         self.target_y = 0.0
         self.target_theta_deg = 0.0
 
+        # Feedback untuk sequence atomik yang dijalankan sepenuhnya oleh Teensy.
+        self.macro_n_completed = threading.Event()
+
         # Memulai Thread Background untuk membaca serial tanpa membuat GUI/FSM macet
         self.running = True
         self.worker_thread = threading.Thread(target=self._serial_worker_loop)
@@ -50,6 +53,9 @@ class RobotController:
                         self.odom_y = float(match.group(2))
                         self.odom_theta_deg = float(match.group(3))
                     else:
+                        if "[MACRO-N] SEQUENCE COMPLETED SUCCESSFULLY!" in line:
+                            self.macro_n_completed.set()
+
                         # Print pesan dari Teensy yang bukan data odometri (contoh: log debug)
                         if line and not line.startswith("ACC ->"):
                             print(f"[TEENSY]: {line}")
@@ -160,6 +166,34 @@ class RobotController:
         self.target_x = 0.0
         self.target_y = 0.0
         self.target_theta_deg = 0.0
+
+    def trigger_macro_n(self):
+        """Meminta Teensy menjalankan seluruh sequence Macro N."""
+        self.macro_n_completed.clear()
+        return self.send_cmd("N")
+
+    def wait_for_macro_n(self, timeout=None):
+        """Menunggu pesan completion Macro N dari Teensy."""
+        t_out = timeout if timeout is not None else KinematicConfig.MACRO_N_TIMEOUT
+        start_time = time.time()
+
+        while time.time() - start_time < t_out:
+            if self.macro_n_completed.wait(timeout=0.1):
+                return True
+            if not self.is_connected:
+                print("[WARNING] Koneksi serial terputus saat Macro N berjalan.")
+                return False
+
+        print("[WARNING] Timeout menunggu Macro N selesai.")
+        return False
+
+    def run_macro_n(self, timeout=None):
+        """Mengirim command N sekali, lalu menunggu Teensy menyelesaikan sequence."""
+        print("[ROBOT] Menjalankan Macro N di Teensy...")
+        if not self.trigger_macro_n():
+            print("[WARNING] Gagal mengirim command Macro N.")
+            return False
+        return self.wait_for_macro_n(timeout=timeout)
 
     # ==========================================
     # PRIMITIF KINEMATIK GERAK
