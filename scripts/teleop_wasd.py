@@ -35,7 +35,7 @@ def getch_nonblocking():
     return None
 
 
-def print_ui(robot, dist_step, angle_step, last_action):
+def print_ui(robot, dist_step, angle_step, front_pneu, back_pneu, last_action):
     """Draw a beautiful real-time dashboard in the terminal."""
     # ANSI escape code: clear screen and move cursor to top-left
     sys.stdout.write("\033[2J\033[H")
@@ -59,10 +59,16 @@ def print_ui(robot, dist_step, angle_step, last_action):
     print("\033[95m" + "-" * 55 + "\033[0m")
     
     # Actuator State Visualizer
+    front_str = "\033[92mEXT\033[0m" if front_pneu else "\033[91mRET\033[0m"
+    back_str = "\033[92mEXT\033[0m" if back_pneu else "\033[91mRET\033[0m"
+    
     print(" 🔧 \033[1mACTUATORS & UTILITIES\033[0m")
     print("   [O] Open Gripper   |  [C] Close Gripper")
     print("   [U] Arm UP         |  [J] Arm DOWN")
-    print("   [Z] Zero Odometry  |  [Space / X] E-STOP")
+    print(f"   [F] Front Pneu ({front_str}) |  [B] Back Pneu ({back_str})")
+    print("   [T] Extend Both    |  [R] Retract Both")
+    print("   [N] Trigger Macro N|  [Z] Zero Odometry")
+    print("   [Space / X] E-STOP")
     print("\033[95m" + "-" * 55 + "\033[0m")
     
     # Movement Legend
@@ -85,11 +91,13 @@ def main():
     
     dist_step = 0.05  # Default: 5cm step
     angle_step = 10.0  # Default: 10 degrees turn
+    front_pneu = False
+    back_pneu = False
     last_action = "None"
     
     try:
         while True:
-            print_ui(robot, dist_step, angle_step, last_action)
+            print_ui(robot, dist_step, angle_step, front_pneu, back_pneu, last_action)
             key = getch_nonblocking()
             
             if key is None:
@@ -136,6 +144,34 @@ def main():
             elif key_lower == "j":
                 robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
                 last_action = "Lower Arm (DOWN)"
+            elif key_lower == "n":
+                last_action = "Running Macro N..."
+                print_ui(robot, dist_step, angle_step, front_pneu, back_pneu, last_action)
+                if robot.run_macro_n():
+                    last_action = "Macro N Completed Successfully"
+                    robot.set_deadwheels(True)
+                    front_pneu = False
+                    back_pneu = False
+                else:
+                    last_action = "Macro N Failed / Timeout"
+            elif key_lower == "f":
+                front_pneu = not front_pneu
+                robot.set_pneumatics(front=front_pneu, back=back_pneu)
+                last_action = f"Toggled Front Pneumatic to {'EXT' if front_pneu else 'RET'}"
+            elif key_lower == "b":
+                back_pneu = not back_pneu
+                robot.set_pneumatics(front=front_pneu, back=back_pneu)
+                last_action = f"Toggled Back Pneumatic to {'EXT' if back_pneu else 'RET'}"
+            elif key_lower == "t":
+                front_pneu = True
+                back_pneu = True
+                robot.set_pneumatics(front=True, back=True)
+                last_action = "Extended Both Pneumatics"
+            elif key_lower == "r":
+                front_pneu = False
+                back_pneu = False
+                robot.set_pneumatics(front=False, back=False)
+                last_action = "Retracted Both Pneumatics"
                 
             # --- UTILITIES ---
             elif key_lower == "z":

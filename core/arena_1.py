@@ -49,54 +49,65 @@ def run_arena_1(robot, vision, is_running_cb=None):
     print("="*40)
     if not ensure_connection("start arena"): return False
     robot.set_led(1, 0, 255, 0) # LED Hijau 
-    robot.move_relative(left=0.3)
-    if not robot.wait_until_idle(): return False
-    print("[ARENA 1] Menunggu sasis stabil sebelum Visual Servoing...")
-    time.sleep(VisionConfig.PRE_VISUAL_SERVOING_SETTLE_SEC)
-
-
-    # 1. Visual Servoing (Koreksi Kanan/Kiri Pas)
-    print("[ARENA 1] Mengaktifkan Visual Servoing...")
-    if not ensure_connection("visual servoing"): return False
-    robot.set_led(3, 255, 255, 0) # Bernapas Kuning
-    
-    # Fungsi align() ini membaca kamera dan menggerakkan sasis kanan/kiri
-    # sampai centroid target sejajar dengan garis target vertikal.
-    if not vision.align(robot):
-        return False
-    print("[ARENA 1] Target Terkunci Presisi!")
-
-    print("[ARENA 1] Mengangkat Arm...")
-    if not ensure_connection("angkat arm"): return False
-    robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
-    time.sleep(ActuatorConfig.DELAY_ARM_SEC)
-
-    # 2. Gerakan Sequence Makro Ambil
-    print("[ARENA 1] Membuka Gripper...")
-    if not ensure_connection("buka gripper"): return False
-    robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
-    time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+    # robot.move_relative(left=0.3)
+    # if not robot.wait_until_idle(): return False
 
     print("[ARENA 1] Menurunkan Arm...")
     if not ensure_connection("turun arm"): return False
     robot.set_led(1, 0, 0, 255) # Biru
-    robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
-    time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+    # robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
+    # time.sleep(ActuatorConfig.DELAY_ARM_SEC)
 
-    print("[ARENA 1] Mundur 0.85m...")
-    if not ensure_connection("mundur ambil spearhead"): return False
-    robot.move_relative(forward=-0.90)
-    if not robot.wait_until_idle(): return False
+    print("[ARENA 1] Menunggu sasis stabil sebelum Visual Servoing...")
+    time.sleep(VisionConfig.PRE_VISUAL_SERVOING_SETTLE_SEC)
 
-    print("[ARENA 1] Menutup Gripper...")
-    if not ensure_connection("tutup gripper"): return False
-    robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_CLOSE)
-    time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+
+    # # 1. Visual Servoing (Koreksi Kanan/Kiri Pas)
+    # print("[ARENA 1] Mengaktifkan Visual Servoing...")
+    # if not ensure_connection("visual servoing"): return False
+    # robot.set_led(3, 255, 255, 0) # Bernapas Kuning
+    
+    # # Fungsi align() ini membaca kamera dan menggerakkan sasis kanan/kiri
+    # # sampai centroid target sejajar dengan garis target vertikal.
+    # if not vision.align(robot):
+    #     return False
+    # print("[ARENA 1] Target Terkunci Presisi!")
+
+    # # print("[ARENA 1] Mengangkat Arm...")
+    # # if not ensure_connection("angkat arm"): return False
+    # # robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
+    # # time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+
+    # # 2. Gerakan Sequence Makro Ambil
+    # print("[ARENA 1] Membuka Gripper...")
+    # if not ensure_connection("buka gripper"): return False
+    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
+    # time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+
+    # print("[ARENA 1] Menurunkan Arm...")
+    # if not ensure_connection("turun arm"): return False
+    # robot.set_led(1, 0, 0, 255) # Biru
+    # robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
+    # time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+
+    # print("[ARENA 1] Mundur 0.85m...")
+    # if not ensure_connection("mundur ambil spearhead"): return False
+    # robot.move_relative(forward=-0.93)
+    # if not robot.wait_until_idle(): return False
+
+    # print("[ARENA 1] Menutup Gripper...")
+    # if not ensure_connection("tutup gripper"): return False
+    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_CLOSE)
+    # time.sleep(1.0)
+
+    # print("[ARENA 1] Mundur 0.3m...")
+    # robot.move_relative(left=0.03)
+    # if not robot.wait_until_idle(): return False
 
     print("[ARENA 1] Mengangkat Arm...")
     if not ensure_connection("angkat arm setelah grip"): return False
     robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
-    time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+    time.sleep(4.0)
 
     print("[ARENA 1] Maju 0.5m...")
     if not ensure_connection("maju keluar rack"): return False
@@ -105,34 +116,42 @@ def run_arena_1(robot, vision, is_running_cb=None):
 
     print("[ARENA 1] Rotate 180 Derajat...")
     if not ensure_connection("rotasi 180"): return False
-    robot.move_relative(turn_deg=180.0)
+    robot.move_relative(turn_deg=190.0)
     if not robot.wait_until_idle(): return False
 
-    # 3. Logika Deteksi AprilTag
-    print("[ARENA 1] Mencari AprilTag...")
-    apriltag_detected = False
-    
-    # Loop sampai AprilTag terlihat
-    while not apriltag_detected:
-        if not ensure_connection("deteksi apriltag"): return False
-        apriltag_detected, tag_id = vision.detect_apriltag()
-        
-        if not check_running(): return False # Proteksi jika E-Stop ditekan
-        time.sleep(0.1)
+    print("[ARENA 1] Menunggu 6 detik...")
+    time.sleep(15.0)
 
-    print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
-    if not ensure_connection("buka gripper apriltag"): return False
+    print("[ARENA 1] Membuka Gripper...")
+    if not ensure_connection("buka gripper"): return False
     robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
     time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
 
-    print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
-    # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
-    while apriltag_detected:
-        if not ensure_connection("menunggu apriltag hilang"): return False
-        apriltag_detected, tag_id = vision.detect_apriltag()
+    # # 3. Logika Deteksi AprilTag
+    # print("[ARENA 1] Mencari AprilTag...")
+    # apriltag_detected = False
+    
+    # # Loop sampai AprilTag terlihat
+    # while not apriltag_detected:
+    #     if not ensure_connection("deteksi apriltag"): return False
+    #     apriltag_detected, tag_id = vision.detect_apriltag()
         
-        if not check_running(): return False 
-        time.sleep(0.1)
+    #     if not check_running(): return False # Proteksi jika E-Stop ditekan
+    #     time.sleep(0.1)
 
-    print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
-    return True
+    # print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
+    # if not ensure_connection("buka gripper apriltag"): return False
+    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
+    # time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+
+    # print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
+    # # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
+    # while apriltag_detected:
+    #     if not ensure_connection("menunggu apriltag hilang"): return False
+    #     apriltag_detected, tag_id = vision.detect_apriltag()
+        
+    #     if not check_running(): return False 
+    #     time.sleep(0.1)
+
+    # print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
+    # return True

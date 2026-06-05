@@ -48,7 +48,7 @@ class ActuatorConfig:
     GRIP_OPEN = 158
     GRIP_CLOSE = 55
     ARM_UP = 0         
-    ARM_DOWN = 85      
+    ARM_DOWN = 75      
     
     # --- Waktu Mekanik (Jeda Gerak Aman) ---
     # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna
@@ -59,15 +59,15 @@ class ActuatorConfig:
 class VisionConfig:
     # --- Konfigurasi Sensor Kamera / OpenCV ---
     CAMERA_INDEX = 0       # 0 untuk webcam bawaan / port USB pertama
-    FRAME_WIDTH = 640
-    FRAME_HEIGHT = 480
+    FRAME_WIDTH = 320
+    FRAME_HEIGHT = 240
     TARGET_FPS = 30
     SHOW_DEBUG_WINDOW = True
     LOW_LATENCY_BUFFER_SIZE = 1
     FRAME_FLUSH_COUNT = 2
     
     # --- Toleransi Error Visual ---
-    PIXEL_TOLERANCE_X = 15 # Robot berhenti koreksi visual jika error pixel di bawah angka ini
+    PIXEL_TOLERANCE_X = 7 # Robot berhenti koreksi visual jika error pixel di bawah angka ini
     PIXEL_TOLERANCE_Y = 15
 
     # --- Konfigurasi Spearhead YOLO --- "fist_gray","palm_gray"
