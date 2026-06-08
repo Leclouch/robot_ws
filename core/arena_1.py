@@ -119,8 +119,65 @@ def run_arena_1(robot, vision, is_running_cb=None):
     robot.move_relative(turn_deg=190.0)
     if not robot.wait_until_idle(): return False
 
-    print("[ARENA 1] Menunggu 6 detik...")
-    time.sleep(15.0)
+    print("[ARENA 1] Memulai deteksi kilatan cahaya hijau redup...")
+    baseline_brightness = None
+    # Kumpulkan beberapa frame untuk menstabilkan auto-exposure (fokus pada channel Hijau)
+    for _ in range(15):
+        if not check_running(): return False
+        ret, frame = vision.read_latest_frame()
+        if ret and frame is not None:
+            brightness = float(frame[:, :, 1].mean())  # Index 1 = Green channel
+            if baseline_brightness is None:
+                baseline_brightness = brightness
+            else:
+                baseline_brightness = 0.8 * baseline_brightness + 0.2 * brightness
+        time.sleep(0.05)
+
+    if baseline_brightness is None:
+        baseline_brightness = 100.0  # fallback
+    print(f"[ARENA 1] Baseline brightness (Hijau): {baseline_brightness:.2f}")
+
+    print("[ARENA 1] Menunggu kilatan cahaya hijau untuk membuka gripper...")
+    flash_detected = False
+    try:
+        while not flash_detected:
+            if not check_running(): return False
+            if not ensure_connection("tunggu kilatan cahaya"): return False
+            
+            ret, frame = vision.read_latest_frame()
+            if not ret or frame is None:
+                time.sleep(0.05)
+                continue
+            
+            blue_mean = float(frame[:, :, 0].mean())
+            green_mean = float(frame[:, :, 1].mean())
+            red_mean = float(frame[:, :, 2].mean())
+            
+            # Kriteria kilatan hijau redup:
+            # 1. Kecerahan hijau naik minimal 15 poin dibanding baseline hijau
+            # 2. Nilai hijau lebih dominan daripada merah dan biru
+            if (green_mean - baseline_brightness > 15.0) and (green_mean > max(blue_mean, red_mean) + 8.0):
+                print(f"[ARENA 1] KILATAN HIJAU TERDETEKSI! Green: {green_mean:.2f} (Baseline: {baseline_brightness:.2f}, Blue: {blue_mean:.2f}, Red: {red_mean:.2f})")
+                flash_detected = True
+            else:
+                # Update baseline secara perlahan (slow drift adaptation)
+                baseline_brightness = 0.99 * baseline_brightness + 0.01 * green_mean
+            
+            if VisionConfig.SHOW_DEBUG_WINDOW:
+                import cv2
+                cv2.imshow("Flash Detection", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            
+            time.sleep(0.02)
+    finally:
+        vision.close()
+        if VisionConfig.SHOW_DEBUG_WINDOW:
+            try:
+                import cv2
+                cv2.destroyWindow("Flash Detection")
+            except Exception:
+                pass
 
     print("[ARENA 1] Membuka Gripper...")
     if not ensure_connection("buka gripper"): return False

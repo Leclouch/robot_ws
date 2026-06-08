@@ -32,23 +32,26 @@ def run_arena_2(robot, planner, is_running_cb=None):
     print("="*40)
     robot.set_led(1, 255, 165, 0) # LED Oranye = Memasuki Wilayah Hutan
 
-    # 1. Bergerak dari area Rak menuju depan gerbang Hutan
-    fwd, left = planner.get_arena_2_target()
-    print(f"[ARENA 2] Menuju Depan Forest -> Fwd: {fwd}m, Left: {left}m")
-    robot.move_relative(forward=fwd, left=left)
-    if not robot.wait_until_idle(): return False
 
-    if not check_running(): return False
 
-    # 2. Seluruh urutan manjat hutan dijalankan secara atomik oleh Teensy.
-    print("[ARENA 2] Mengirim command Macro N ke Teensy...")
-    if not robot.run_macro_n(): return False
 
-    if not check_running(): return False
+    # # 1. Bergerak dari area Rak menuju depan gerbang Hutan
+    # fwd, left = planner.get_arena_2_target()
+    # print(f"[ARENA 2] Menuju Depan Forest -> Fwd: {fwd}m, Left: {left}m")
+    # robot.move_relative(forward=fwd, left=left)
+    # if not robot.wait_until_idle(): return False
 
-    # Macro N mematikan deadwheel. Aktifkan kembali untuk navigasi arena berikutnya.
-    print("[ARENA 2] Macro N selesai. Mengaktifkan kembali deadwheel...")
-    robot.set_deadwheels(True)
+    # if not check_running(): return False
+
+    # # 2. Seluruh urutan manjat hutan dijalankan secara atomik oleh Teensy.
+    # print("[ARENA 2] Mengirim command Macro N ke Teensy...")
+    # if not robot.run_macro_n(): return False
+
+    # if not check_running(): return False
+
+    # # Macro N mematikan deadwheel. Aktifkan kembali untuk navigasi arena berikutnya.
+    # print("[ARENA 2] Macro N selesai. Mengaktifkan kembali deadwheel...")
+    # robot.set_deadwheels(True)
 
     print("[FSM] >>> ARENA 2 SELESAI DENGAN SUKSES <<<")
     return True
