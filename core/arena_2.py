@@ -31,9 +31,47 @@ def run_arena_2(robot, planner, is_running_cb=None):
     print("[FSM] >>> STRATEGI ARENA 2 DIMULAI <<<")
     print("="*40)
     robot.set_led(1, 255, 165, 0) # LED Oranye = Memasuki Wilayah Hutan
+    import time
 
+    # ============================================================
+    # PLACEHOLDER VALUES — tune these before competition:
+    MOVE_1_FORWARD = 0.5   # meters: first forward move (both pneumatics UP)
+    MOVE_2_FORWARD = 0.5   # meters: second forward move (after front retracted)
+    PNEU_SETTLE_SEC = 1.0  # seconds: wait after each pneumatic action
+    # ============================================================
 
+    # --- STEP 1: Extend both pneumatics UP ---
+    print("[ARENA 2] Step 1: Extending both pneumatics...")
+    robot.set_pneumatics(front=True, back=True)
+    time.sleep(PNEU_SETTLE_SEC)
+    if not check_running(): return False
 
+    # --- STEP 2: Move forward (first segment) ---
+    print(f"[ARENA 2] Step 2: Moving forward {MOVE_1_FORWARD}m...")
+    robot.move_relative(forward=MOVE_1_FORWARD)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+    # --- STEP 3: Retract FRONT pneumatic ---
+    print("[ARENA 2] Step 3: Retracting front pneumatic...")
+    robot.set_pneumatics(front=False, back=True)
+    time.sleep(PNEU_SETTLE_SEC)
+    if not check_running(): return False
+
+    # --- STEP 4: Move forward again (second segment) ---
+    print(f"[ARENA 2] Step 4: Moving forward {MOVE_2_FORWARD}m...")
+    robot.move_relative(forward=MOVE_2_FORWARD)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+    # --- STEP 5: Retract BACK pneumatic ---
+    print("[ARENA 2] Step 5: Retracting back pneumatic...")
+    robot.set_pneumatics(front=False, back=False)
+    time.sleep(PNEU_SETTLE_SEC)
+    if not check_running(): return False
+
+    print("[FSM] >>> ARENA 2 SELESAI DENGAN SUKSES <<<")
+    return True
 
     # # 1. Bergerak dari area Rak menuju depan gerbang Hutan
     # fwd, left = planner.get_arena_2_target()
