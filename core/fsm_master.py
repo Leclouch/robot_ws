@@ -86,22 +86,36 @@ class AutonomousFSM:
         self.robot.trigger_buzzer(1500)
 
     def trigger_retry_arena(self, arena_id):
-        """Menjalankan ulang arena tertentu dari dashboard."""
+        """Menjalankan ulang arena tertentu dari dashboard dan melanjutkan sekuens."""
         self.is_running = True
+        
+        # --- LANJUTKAN DARI ARENA YANG DIPILIH ---
         if arena_id == 1:
             self.current_arena = "RETRY_ARENA_1"
             if not self.run_arena_1():
                 self.emergency_stop_handler("Retry Arena 1 gagal")
-        elif arena_id == 2:
+                return
+            arena_id = 2  # Lanjut ke Arena 2 setelah Arena 1 sukses
+
+        if arena_id == 2:
             self.current_arena = "RETRY_ARENA_2"
             if not self.run_arena_2():
                 self.emergency_stop_handler("Retry Arena 2 gagal")
-        elif arena_id == 3:
+                return
+            arena_id = 3  # Lanjut ke Arena 3 setelah Arena 2 sukses
+
+        if arena_id == 3:
             self.current_arena = "RETRY_ARENA_3"
             if not self.run_arena_3():
                 self.emergency_stop_handler("Retry Arena 3 gagal")
-        else:
-            print(f"[WARNING] Arena retry tidak dikenal: {arena_id}")
+                return
+
+        # --- SELESAI TOTAL (VICTORY) ---
+        print("\n" + "#"*50)
+        print("[VICTORY] ROBOT BERHASIL MENYELESAIKAN GAME FIELD KRAI!")
+        print("#"*50)
+        self.robot.set_led(2, 0, 255, 0) # LED Berkedip Hijau tanda finish sempurna
+        self.robot.trigger_buzzer(1500)
 
     def trigger_stop(self):
         """Callback dashboard untuk menghentikan robot dan FSM."""
