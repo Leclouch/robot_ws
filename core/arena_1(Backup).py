@@ -14,9 +14,6 @@ from hardware.serial_interface import RobotController
 from config import ActuatorConfig, VisionConfig
 from vision.visual_servoing import SpearheadVisualServo
 
-# ==========================================
-# CONFIGURABLE PARAMETERS
-# ==========================================
 def run_arena_1(robot, vision, is_running_cb=None):
     """
     STRATEGI ARENA 1: START & AMBIL SPEARHEAD
@@ -51,40 +48,61 @@ def run_arena_1(robot, vision, is_running_cb=None):
     print("[FSM] >>> STRATEGI ARENA 1 DIMULAI <<<")
     print("="*40)
     if not ensure_connection("start arena"): return False
-    robot.set_led(1, 0, 255, 0)  # LED Hijau
-
-    print("[ARENA 1] Membuka Gripper (awal)...")
-    if not ensure_connection("buka gripper awal"): return False
-    robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
-    time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
-
-    print("[ARENA 1] Mengangkat Arm...")
-    if not ensure_connection("angkat arm setelah grip"): return False
-    robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
-    time.sleep(4.0)
-
-    # --- Strafe Left ---
-    print(f"[ARENA 1] Strafe Kiri...")
-    if not ensure_connection("strafe kiri"): return False
-    robot.move_relative(left=0.2)
-    if not robot.wait_until_idle(): return False
-
+    robot.set_led(1, 0, 255, 0) # LED Hijau 
+    # robot.move_relative(left=0.3)
+    # if not robot.wait_until_idle(): return False
 
     print("[ARENA 1] Menurunkan Arm...")
     if not ensure_connection("turun arm"): return False
-    robot.set_led(1, 0, 0, 255)  # Biru
-    robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
-    time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+    robot.set_led(1, 0, 0, 255) # Biru
+    # robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
+    # time.sleep(ActuatorConfig.DELAY_ARM_SEC)
 
-    print("[ARENA 1] Mundur 0.85m...")
-    if not ensure_connection("mundur ambil spearhead"): return False
-    robot.move_relative(forward=-1.0)
-    if not robot.wait_until_idle(): return False
+    print("[ARENA 1] Menunggu sasis stabil sebelum Visual Servoing...")
+    time.sleep(VisionConfig.PRE_VISUAL_SERVOING_SETTLE_SEC)
 
-    print("[ARENA 1] Menutup Gripper...")
-    if not ensure_connection("tutup gripper"): return False
-    robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_CLOSE)
-    time.sleep(1.0)
+
+    # # 1. Visual Servoing (Koreksi Kanan/Kiri Pas)
+    # print("[ARENA 1] Mengaktifkan Visual Servoing...")
+    # if not ensure_connection("visual servoing"): return False
+    # robot.set_led(3, 255, 255, 0) # Bernapas Kuning
+    
+    # # Fungsi align() ini membaca kamera dan menggerakkan sasis kanan/kiri
+    # # sampai centroid target sejajar dengan garis target vertikal.
+    # if not vision.align(robot):
+    #     return False
+    # print("[ARENA 1] Target Terkunci Presisi!")
+
+    # # print("[ARENA 1] Mengangkat Arm...")
+    # # if not ensure_connection("angkat arm"): return False
+    # # robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_UP)
+    # # time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+
+    # # 2. Gerakan Sequence Makro Ambil
+    # print("[ARENA 1] Membuka Gripper...")
+    # if not ensure_connection("buka gripper"): return False
+    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
+    # time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
+
+    # print("[ARENA 1] Menurunkan Arm...")
+    # if not ensure_connection("turun arm"): return False
+    # robot.set_led(1, 0, 0, 255) # Biru
+    # robot.set_servo(ActuatorConfig.PIN_ARM_SPEAR, ActuatorConfig.ARM_DOWN)
+    # time.sleep(ActuatorConfig.DELAY_ARM_SEC)
+
+    # print("[ARENA 1] Mundur 0.85m...")
+    # if not ensure_connection("mundur ambil spearhead"): return False
+    # robot.move_relative(forward=-0.93)
+    # if not robot.wait_until_idle(): return False
+
+    # print("[ARENA 1] Menutup Gripper...")
+    # if not ensure_connection("tutup gripper"): return False
+    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_CLOSE)
+    # time.sleep(1.0)
+
+    # print("[ARENA 1] Mundur 0.3m...")
+    # robot.move_relative(left=0.03)
+    # if not robot.wait_until_idle(): return False
 
     print("[ARENA 1] Mengangkat Arm...")
     if not ensure_connection("angkat arm setelah grip"): return False
@@ -98,11 +116,12 @@ def run_arena_1(robot, vision, is_running_cb=None):
 
     print("[ARENA 1] Rotate 180 Derajat...")
     if not ensure_connection("rotasi 180"): return False
-    robot.move_relative(turn_deg=195.0)
+    robot.move_relative(turn_deg=190.0)
     if not robot.wait_until_idle(): return False
 
     print("[ARENA 1] Memulai deteksi kilatan cahaya hijau redup...")
     baseline_brightness = None
+    # Kumpulkan beberapa frame untuk menstabilkan auto-exposure (fokus pada channel Hijau)
     for _ in range(15):
         if not check_running(): return False
         ret, frame = vision.read_latest_frame()
@@ -130,14 +149,18 @@ def run_arena_1(robot, vision, is_running_cb=None):
                 time.sleep(0.05)
                 continue
             
-            blue_mean  = float(frame[:, :, 0].mean())
+            blue_mean = float(frame[:, :, 0].mean())
             green_mean = float(frame[:, :, 1].mean())
-            red_mean   = float(frame[:, :, 2].mean())
+            red_mean = float(frame[:, :, 2].mean())
             
+            # Kriteria kilatan hijau redup:
+            # 1. Kecerahan hijau naik minimal 15 poin dibanding baseline hijau
+            # 2. Nilai hijau lebih dominan daripada merah dan biru
             if (green_mean - baseline_brightness > 15.0) and (green_mean > max(blue_mean, red_mean) + 8.0):
                 print(f"[ARENA 1] KILATAN HIJAU TERDETEKSI! Green: {green_mean:.2f} (Baseline: {baseline_brightness:.2f}, Blue: {blue_mean:.2f}, Red: {red_mean:.2f})")
                 flash_detected = True
             else:
+                # Update baseline secara perlahan (slow drift adaptation)
                 baseline_brightness = 0.99 * baseline_brightness + 0.01 * green_mean
             
             if VisionConfig.SHOW_DEBUG_WINDOW:
@@ -161,17 +184,31 @@ def run_arena_1(robot, vision, is_running_cb=None):
     robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
     time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
 
-    print("[ARENA 1] Mundur 0.85m...")
-    if not ensure_connection("mundur ambil spearhead"): return False
-    robot.move_relative(forward=-1.6)
-    if not robot.wait_until_idle(): return False
+    # # 3. Logika Deteksi AprilTag
+    # print("[ARENA 1] Mencari AprilTag...")
+    # apriltag_detected = False
+    
+    # # Loop sampai AprilTag terlihat
+    # while not apriltag_detected:
+    #     if not ensure_connection("deteksi apriltag"): return False
+    #     apriltag_detected, tag_id = vision.detect_apriltag()
+        
+    #     if not check_running(): return False # Proteksi jika E-Stop ditekan
+    #     time.sleep(0.1)
 
-    print("[ARENA 1] Rotate 90 Derajat...")
-    if not ensure_connection("rotasi 180"): return False
-    robot.move_relative(turn_deg=-90.0)
-    if not robot.wait_until_idle(): return False
+    # print("[ARENA 1] AprilTag Terlihat! Membuka Gripper...")
+    # if not ensure_connection("buka gripper apriltag"): return False
+    # robot.set_servo(ActuatorConfig.PIN_GRIP, ActuatorConfig.GRIP_OPEN)
+    # time.sleep(ActuatorConfig.DELAY_GRIP_SEC)
 
-    print("[ARENA 1] Maju 0.85m...")
-    if not ensure_connection("mundur ambil spearhead"): return False
-    robot.move_relative(forward=0.5)
-    if not robot.wait_until_idle(): return False
+    # print("[ARENA 1] Menunggu AprilTag menghilang dari pantauan kamera...")
+    # # Loop menahan FSM sampai AprilTag hilang (diambil/tertutup)
+    # while apriltag_detected:
+    #     if not ensure_connection("menunggu apriltag hilang"): return False
+    #     apriltag_detected, tag_id = vision.detect_apriltag()
+        
+    #     if not check_running(): return False 
+    #     time.sleep(0.1)
+
+    # print("[ARENA 1] AprilTag menghilang. Lanjut pindah state ke R2!")
+    # return True

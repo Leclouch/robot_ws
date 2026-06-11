@@ -29,7 +29,7 @@ class KinematicConfig:
     # --- Tuning Kecepatan Trapesium ---
     SPEED_MAX_FWD = 85.0   # Batas kecepatan Maju/Mundur
     SPEED_MAX_STRF = 85.0  # Batas kecepatan Kanan/Kiri (Strafe)
-    SPEED_MAX_TURN = 50.0  # Batas kecepatan Rotasi
+    SPEED_MAX_TURN = 70.0  # Batas kecepatan Rotasi
     
     # --- Toleransi Navigasi (Untuk fungsi wait_until_idle) ---
     DIST_TOLERANCE = 0.02  # Jarak aman sasis dianggap sudah sampai target (meter)
@@ -45,10 +45,10 @@ class ActuatorConfig:
     PIN_ARM_SPEAR = 4
     
     # --- Konfigurasi Sudut Gerak Servo ---
-    GRIP_OPEN = 158
-    GRIP_CLOSE = 55
-    ARM_UP = 0         
-    ARM_DOWN = 75      
+    GRIP_OPEN = 180
+    GRIP_CLOSE = 0
+    ARM_UP = 25         
+    ARM_DOWN = 113     
     
     # --- Waktu Mekanik (Jeda Gerak Aman) ---
     # Python akan otomatis menunggu durasi ini agar mekanik tereksekusi sempurna

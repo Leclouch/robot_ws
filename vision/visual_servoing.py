@@ -42,14 +42,11 @@ class SpearheadVisualServo:
         self.config = config
         self.cv2 = _lazy_cv2()
         self.np = _lazy_numpy()
-        self.torch = _lazy_torch()
-        yolo_cls = _lazy_yolo()
-
-        self.model_path = self._resolve_model_path(config.SPEARHEAD_MODEL_PATH)
-        if not os.path.exists(self.model_path):
-            raise FileNotFoundError(f"Spearhead YOLO model not found: {self.model_path}")
-
-        self.model = yolo_cls(self.model_path)
+        # torch and YOLO are loaded lazily in process_frame() so that this
+        # class can be instantiated on machines where torch is not installed
+        # (e.g. when only flash-detection or AprilTag detection is needed).
+        self._torch = None
+        self._model = None
         self.cap = None
         self.active_tracks = []
         self.next_track_id = 0
@@ -216,16 +213,28 @@ class SpearheadVisualServo:
 
         return detected, tag_id
 
+    def _ensure_model_loaded(self):
+        """Lazy-load torch and YOLO model on first call to process_frame."""
+        if self._torch is None:
+            self._torch = _lazy_torch()
+        if self._model is None:
+            yolo_cls = _lazy_yolo()
+            model_path = self._resolve_model_path(self.config.SPEARHEAD_MODEL_PATH)
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Spearhead YOLO model not found: {model_path}")
+            self._model = yolo_cls(model_path)
+
     def process_frame(self, color_image):
+        self._ensure_model_loaded()
         height, width = color_image.shape[:2]
         if height == 0 or width == 0:
             return color_image, None, 0.0, 0.0
 
         target_x = width * self.config.SPEARHEAD_TARGET_X_RATIO
         target_y = height * self.config.SPEARHEAD_TARGET_Y_RATIO
-        device = "cuda" if self.torch.cuda.is_available() else "cpu"
+        device = "cuda" if self._torch.cuda.is_available() else "cpu"
 
-        results = self.model(
+        results = self._model(
             color_image,
             verbose=False,
             conf=self.config.SPEARHEAD_CONF_THRESHOLD,
@@ -260,7 +269,7 @@ class SpearheadVisualServo:
                     continue
 
                 cls_id = int(result.boxes.cls[i])
-                label = self.model.names[cls_id]
+                label = self._model.names[cls_id]
                 if class_filter and label.lower() not in class_filter:
                     continue
 

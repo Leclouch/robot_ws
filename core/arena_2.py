@@ -34,38 +34,166 @@ def run_arena_2(robot, planner, is_running_cb=None):
     import time
 
     # ============================================================
-    # PLACEHOLDER VALUES — tune these before competition:
-    MOVE_1_FORWARD = 0.5   # meters: first forward move (both pneumatics UP)
-    MOVE_2_FORWARD = 0.5   # meters: second forward move (after front retracted)
+    # Go Up 1
+    MOVE_1_FORWARD = 0.51   # Initial orward oveent
+    MOVE_2_FORWARD = 0.49   # after front retracted)
+    MOVE_3_FORWARD = 0.6    # after back retracted)
+    TURN_RIGHT_DEG = -90.0  # degrees: turn right (negative = CW / right)
+    
+    # Go Up 2
+    MOVE_4_FORWARD = 0.35   # both pneumatics UP)
+    MOVE_5_FORWARD = 0.55   # after front retracted)
+    MOVE_6_FORWARD = 0.60   # after back retracted)
+    
+    # Go Down 1
+    MOVE_7_FORWARD = 0.35   # edge keeping
+    MOVE_8_FORWARD = 0.55   # after front extended)
+    MOVE_9_FORWARD = 0.60   # after back extended)
+    
     PNEU_SETTLE_SEC = 1.0  # seconds: wait after each pneumatic action
     # ============================================================
 
-    # --- STEP 1: Extend both pneumatics UP ---
-    print("[ARENA 2] Step 1: Extending both pneumatics...")
+    ## --- STEP 1: Extend both pneumatics UP ---
+    #print("[ARENA 2] Step 1: Extending both pneumatics...")
+    #robot.set_pneumatics(front=True, back=True)
+    #time.sleep(PNEU_SETTLE_SEC)
+    #if not check_running(): return False
+#
+    ## --- STEP 2: Move forward (first segment) ---
+    #print(f"[ARENA 2] Step 2: Moving forward {MOVE_1_FORWARD}m...")
+    #robot.move_relative(forward=MOVE_1_FORWARD)
+    #if not robot.wait_until_idle(): return False
+    #if not check_running(): return False
+#
+    ## --- STEP 3: Retract FRONT pneumatic ---
+    #print("[ARENA 2] Step 3: Retracting front pneumatic...")
+    #robot.set_pneumatics(front=False, back=True)
+    #time.sleep(PNEU_SETTLE_SEC)
+    #if not check_running(): return False
+#
+    ## --- STEP 4: Move forward again (second segment) ---
+    #print(f"[ARENA 2] Step 4: Moving forward {MOVE_2_FORWARD}m...")
+    #robot.move_relative(forward=MOVE_2_FORWARD)
+    #if not robot.wait_until_idle(): return False
+    #if not check_running(): return False
+#
+    ## --- STEP 5: Retract BACK pneumatic ---
+    #print("[ARENA 2] Step 5: Retracting back pneumatic...")
+    #robot.set_pneumatics(front=False, back=False)
+    #time.sleep(PNEU_SETTLE_SEC)
+    #if not check_running(): return False
+#
+    ## --- STEP 6: Move forward (third segment) ---
+    #print(f"[ARENA 2] Step 6: Moving forward {MOVE_3_FORWARD}m...")
+    #robot.move_relative(forward=MOVE_3_FORWARD)
+    #if not robot.wait_until_idle(): return False
+    #if not check_running(): return False
+#
+#
+    ## --- STEP 7: Turn 90° to the RIGHT ---
+    #print(f"[ARENA 2] Step 7: Turning {abs(TURN_RIGHT_DEG):.0f}° RIGHT...")
+    #robot.move_relative(turn_deg=TURN_RIGHT_DEG)
+    #if not robot.wait_until_idle(): return False
+    #if not check_running(): return False
+
+
+
+
+
+
+
+
+
+
+
+    # --- STEP 8: Extend both pneumatics UP ---
+    print("[ARENA 2] Step 8: Extending both pneumatics (UP)...")
     robot.set_pneumatics(front=True, back=True)
     time.sleep(PNEU_SETTLE_SEC)
     if not check_running(): return False
 
-    # --- STEP 2: Move forward (first segment) ---
-    print(f"[ARENA 2] Step 2: Moving forward {MOVE_1_FORWARD}m...")
-    robot.move_relative(forward=MOVE_1_FORWARD)
+    # --- STEP 9: Move forward (2nd cycle, first segment) ---
+    print(f"[ARENA 2] Step 9: Moving forward {MOVE_4_FORWARD}m...")
+    robot.move_relative(forward=MOVE_4_FORWARD)
     if not robot.wait_until_idle(): return False
     if not check_running(): return False
 
-    # --- STEP 3: Retract FRONT pneumatic ---
-    print("[ARENA 2] Step 3: Retracting front pneumatic...")
+    # --- STEP 10: Retract FRONT pneumatic ---
+    print("[ARENA 2] Step 10: Retracting front pneumatic...")
     robot.set_pneumatics(front=False, back=True)
+    time.sleep(2)
+    if not check_running(): return False
+
+    # --- STEP 11: Move forward (2nd cycle, second segment) ---
+    print(f"[ARENA 2] Step 11: Moving forward {MOVE_5_FORWARD}m...")
+    robot.move_relative(forward=MOVE_5_FORWARD)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+    # --- STEP 12: Retract BACK pneumatic ---
+    print("[ARENA 2] Step 12: Retracting back pneumatic...")
+    robot.set_pneumatics(front=False, back=False)
     time.sleep(PNEU_SETTLE_SEC)
     if not check_running(): return False
 
-    # --- STEP 4: Move forward again (second segment) ---
-    print(f"[ARENA 2] Step 4: Moving forward {MOVE_2_FORWARD}m...")
-    robot.move_relative(forward=MOVE_2_FORWARD)
+    # --- STEP 13: Move forward (2nd cycle, third segment) ---
+    print(f"[ARENA 2] Step 13: Moving forward {MOVE_6_FORWARD}m...")
+    robot.move_relative(forward=MOVE_6_FORWARD)
     if not robot.wait_until_idle(): return False
     if not check_running(): return False
 
-    # --- STEP 5: Retract BACK pneumatic ---
-    print("[ARENA 2] Step 5: Retracting back pneumatic...")
+    # --- STEP 14: Turn 90° to the RIGHT (2nd turn, now facing DOWN) ---
+    print(f"[ARENA 2] Step 14: Turning {abs(TURN_RIGHT_DEG):.0f}° RIGHT (facing DOWN)...")
+    robot.move_relative(turn_deg=90.0)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # --- STEP 15: Move forward/DOWN (3rd cycle, first segment) ---
+    print(f"[ARENA 2] Step 15: Moving DOWN {MOVE_7_FORWARD}m...")
+    robot.move_relative(forward=MOVE_7_FORWARD)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+    # --- STEP 16: Extend FRONT pneumatic ---
+    print("[ARENA 2] Step 16: Extending front pneumatic...")
+    robot.set_pneumatics(front=True, back=False)
+    time.sleep(PNEU_SETTLE_SEC)
+    if not check_running(): return False
+
+    # --- STEP 17: Move forward/DOWN (3rd cycle, second segment) ---
+    print(f"[ARENA 2] Step 17: Moving DOWN {MOVE_8_FORWARD}m...")
+    robot.move_relative(forward=MOVE_8_FORWARD)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+    # --- STEP 18: Extend BACK pneumatic ---
+    print("[ARENA 2] Step 18: Extending back pneumatic...")
+    robot.set_pneumatics(front=True, back=True)
+    time.sleep(PNEU_SETTLE_SEC)
+    if not check_running(): return False
+
+    # --- STEP 19: Move forward/DOWN (3rd cycle, third segment) ---
+    print(f"[ARENA 2] Step 19: Moving DOWN {MOVE_9_FORWARD}m...")
+    robot.move_relative(forward=MOVE_9_FORWARD)
+    if not robot.wait_until_idle(): return False
+    if not check_running(): return False
+
+    # --- STEP 20: Retract BOTH pneumatics ---
+    print("[ARENA 2] Step 20: Retracting both pneumatics...")
     robot.set_pneumatics(front=False, back=False)
     time.sleep(PNEU_SETTLE_SEC)
     if not check_running(): return False
